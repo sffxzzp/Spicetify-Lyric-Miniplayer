@@ -21,7 +21,7 @@
     const THEMES = {
         spotify: {
             name: 'Spotify',
-            emoji: '💚',
+            emoji: 'SP',
             bg: 'linear-gradient(160deg, #0a0a0a 0%, #1a1a2e 40%, #0f0f23 100%)',
             accent: '#1ed760',
             accentHover: '#1fdf64',
@@ -32,7 +32,7 @@
         },
         pink: {
             name: 'Pink Pop',
-            emoji: '💖',
+            emoji: 'PK',
             bg: 'linear-gradient(160deg, #1a0a14 0%, #2d1f2b 40%, #1f0f1a 100%)',
             accent: '#ff69b4',
             accentHover: '#ff85c2',
@@ -43,7 +43,7 @@
         },
         kawaii: {
             name: 'Kawaii',
-            emoji: '🌸',
+            emoji: 'KW',
             bg: 'linear-gradient(160deg, #2d1f2f 0%, #1f1a2e 40%, #2a1f35 100%)',
             accent: '#ffb7dd',
             accentHover: '#ffc9e5',
@@ -54,7 +54,7 @@
         },
         ocean: {
             name: 'Ocean Blue',
-            emoji: '🌊',
+            emoji: 'OC',
             bg: 'linear-gradient(160deg, #0a1628 0%, #0d253f 40%, #0a1a30 100%)',
             accent: '#00bfff',
             accentHover: '#33ccff',
@@ -65,7 +65,7 @@
         },
         racing: {
             name: 'Racing Red',
-            emoji: '🏎️',
+            emoji: 'RC',
             bg: 'linear-gradient(160deg, #0a0a0a 0%, #1a0a0a 40%, #150505 100%)',
             accent: '#ff3333',
             accentHover: '#ff5555',
@@ -76,7 +76,7 @@
         },
         sunset: {
             name: 'Sunset',
-            emoji: '🌅',
+            emoji: 'SS',
             bg: 'linear-gradient(160deg, #1a0f0a 0%, #2d1a0f 40%, #1f1408 100%)',
             accent: '#ff6b35',
             accentHover: '#ff8555',
@@ -87,7 +87,7 @@
         },
         purple: {
             name: 'Galaxy',
-            emoji: '🔮',
+            emoji: 'GX',
             bg: 'linear-gradient(160deg, #0f0a1a 0%, #1a1030 40%, #150d25 100%)',
             accent: '#a855f7',
             accentHover: '#b975f9',
@@ -98,7 +98,7 @@
         },
         mint: {
             name: 'Mint Fresh',
-            emoji: '🍃',
+            emoji: 'MN',
             bg: 'linear-gradient(160deg, #0a1a14 0%, #0f2a20 40%, #081810 100%)',
             accent: '#2dd4bf',
             accentHover: '#4ee0cd',
@@ -109,7 +109,7 @@
         },
         gold: {
             name: 'Luxury Gold',
-            emoji: '👑',
+            emoji: 'GD',
             bg: 'linear-gradient(160deg, #0f0d08 0%, #1a1508 40%, #12100a 100%)',
             accent: '#fbbf24',
             accentHover: '#fcd34d',
@@ -120,7 +120,7 @@
         },
         cyberpunk: {
             name: 'Cyberpunk',
-            emoji: '🤖',
+            emoji: 'CP',
             bg: 'linear-gradient(160deg, #0a0a12 0%, #12081f 40%, #0f0a18 100%)',
             accent: '#f0f',
             accentHover: '#ff44ff',
@@ -131,7 +131,7 @@
         },
         snow: {
             name: 'Frost',
-            emoji: '❄️',
+            emoji: 'FR',
             bg: 'linear-gradient(160deg, #0d1520 0%, #1a2535 40%, #0f1825 100%)',
             accent: '#7dd3fc',
             accentHover: '#a5e1fd',
@@ -142,7 +142,7 @@
         },
         rose: {
             name: 'Rose Gold',
-            emoji: '🌹',
+            emoji: 'RG',
             bg: 'linear-gradient(160deg, #1a1015 0%, #251820 40%, #1d1318 100%)',
             accent: '#f43f5e',
             accentHover: '#fb7185',
@@ -159,14 +159,20 @@
     let currentTrackUri = null;
     let updateIntervalId = null;
     let fontSize = CONFIG.defaultFontSize;
-    let showFontSlider = true;
+    let showFontSlider = false;
     let showVolumeSlider = true;
     let showLyrics = true;
     let showShuffleBtn = true;
+    let showRepeatBtn = true;
     let showLikeBtn = true;
     let showCloseBtn = true;
     let centerLyrics = true;
     let currentTheme = 'spotify';
+    let colorMode = 'dark';
+    let idleDelayMs = 2000;
+    let pendingRepeatMode = null;
+    let pendingRepeatAt = 0;
+    const REPEAT_PENDING_MS = 1000;
 
     // Load saved settings
     try {
@@ -180,19 +186,64 @@
         if (savedShowLyrics !== null) showLyrics = savedShowLyrics === 'true';
         const savedShowShuffle = localStorage.getItem('lyrics-overlay-showshuffle');
         if (savedShowShuffle !== null) showShuffleBtn = savedShowShuffle === 'true';
+        const savedShowRepeat = localStorage.getItem('lyrics-overlay-showrepeat');
+        if (savedShowRepeat !== null) showRepeatBtn = savedShowRepeat === 'true';
         const savedShowLike = localStorage.getItem('lyrics-overlay-showlike');
         if (savedShowLike !== null) showLikeBtn = savedShowLike === 'true';
         const savedShowClose = localStorage.getItem('lyrics-overlay-showclose');
         if (savedShowClose !== null) showCloseBtn = savedShowClose === 'true';
         const savedCenterLyrics = localStorage.getItem('lyrics-overlay-centerlyrics');
         if (savedCenterLyrics !== null) centerLyrics = savedCenterLyrics === 'true';
+        const savedIdleDelay = localStorage.getItem('lyrics-overlay-idledelay');
+        if (savedIdleDelay) {
+            const parsedIdle = parseInt(savedIdleDelay, 10);
+            if (!Number.isNaN(parsedIdle)) idleDelayMs = Math.min(30000, Math.max(500, parsedIdle));
+        }
+        const savedColorMode = localStorage.getItem('lyrics-overlay-colormode');
+        if (savedColorMode === 'light' || savedColorMode === 'dark') colorMode = savedColorMode;
         const savedTheme = localStorage.getItem('lyrics-overlay-theme');
         if (savedTheme && THEMES[savedTheme]) currentTheme = savedTheme;
     } catch (e) {}
 
     // ==================== GENERATE CSS WITH THEME ====================
-    function generateStyles(theme) {
-        const t = THEMES[theme] || THEMES.spotify;
+    function resolveTheme(theme, mode) {
+        const base = THEMES[theme] || THEMES.spotify;
+        if (mode !== 'light') return base;
+
+        return {
+            ...base,
+            bg: base.lightBg || 'linear-gradient(160deg, #f7f7fb 0%, #f3f6fb 40%, #eef1f7 100%)',
+            headerBg: base.lightHeaderBg || 'rgba(255, 255, 255, 0.85)',
+            controlsBg: base.lightControlsBg || 'rgba(255, 255, 255, 0.78)',
+            footerBg: base.lightFooterBg || 'rgba(255, 255, 255, 0.85)',
+            textGlow: base.lightTextGlow || base.textGlow,
+            text: base.lightText || '#1a1a1a',
+            textMuted: base.lightTextMuted || 'rgba(0, 0, 0, 0.55)',
+            textDim: base.lightTextDim || 'rgba(0, 0, 0, 0.4)',
+            textFaint: base.lightTextFaint || 'rgba(0, 0, 0, 0.3)',
+            iconMuted: base.lightIconMuted || 'rgba(0, 0, 0, 0.5)',
+            border: base.lightBorder || 'rgba(0, 0, 0, 0.08)',
+            borderStrong: base.lightBorderStrong || 'rgba(0, 0, 0, 0.12)',
+            surface1: base.lightSurface1 || 'rgba(0, 0, 0, 0.06)',
+            surface2: base.lightSurface2 || 'rgba(0, 0, 0, 0.12)',
+            surface3: base.lightSurface3 || 'rgba(0, 0, 0, 0.04)',
+            surface4: base.lightSurface4 || 'rgba(0, 0, 0, 0.08)',
+            surface5: base.lightSurface5 || 'rgba(0, 0, 0, 0.15)',
+            settingsBg: base.lightSettingsBg || 'rgba(248, 248, 251, 0.98)',
+            themePickerBg: base.lightThemePickerBg || 'rgba(248, 248, 251, 0.98)',
+            toggleKnob: base.lightToggleKnob || '#ffffff',
+            menuBtnOpacity: base.lightMenuBtnOpacity || 0.6,
+            menuBtnHoverOpacity: base.lightMenuBtnHoverOpacity || 0.9,
+            lyricBaseOpacity: base.lightLyricBaseOpacity || 0.85,
+            lyricHoverOpacity: base.lightLyricHoverOpacity || 0.95,
+            lyricPastOpacity: base.lightLyricPastOpacity || 0.7,
+            statusOpacity: base.lightStatusOpacity || 0.85,
+            subtextOpacity: base.lightSubtextOpacity || 0.8,
+        };
+    }
+
+    function generateStyles(theme, mode) {
+        const t = resolveTheme(theme, mode);
         return `
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
         
@@ -200,6 +251,28 @@
             --accent: ${t.accent};
             --accent-hover: ${t.accentHover};
             --text-glow: ${t.textGlow};
+            --text: ${t.text || '#ffffff'};
+            --text-muted: ${t.textMuted || 'rgba(255, 255, 255, 0.55)'};
+            --text-dim: ${t.textDim || 'rgba(255, 255, 255, 0.4)'};
+            --text-faint: ${t.textFaint || 'rgba(255, 255, 255, 0.3)'};
+            --icon-muted: ${t.iconMuted || 'rgba(255, 255, 255, 0.5)'};
+            --border: ${t.border || 'rgba(255, 255, 255, 0.06)'};
+            --border-strong: ${t.borderStrong || 'rgba(255, 255, 255, 0.08)'};
+            --surface-1: ${t.surface1 || 'rgba(255, 255, 255, 0.08)'};
+            --surface-2: ${t.surface2 || 'rgba(255, 255, 255, 0.15)'};
+            --surface-3: ${t.surface3 || 'rgba(255, 255, 255, 0.03)'};
+            --surface-4: ${t.surface4 || 'rgba(255, 255, 255, 0.1)'};
+            --surface-5: ${t.surface5 || 'rgba(255, 255, 255, 0.2)'};
+            --settings-bg: ${t.settingsBg || 'rgba(10, 10, 15, 0.98)'};
+            --theme-picker-bg: ${t.themePickerBg || 'rgba(8, 8, 12, 0.98)'};
+            --toggle-knob: ${t.toggleKnob || '#ffffff'};
+            --menu-btn-opacity: ${t.menuBtnOpacity ?? 0.4};
+            --menu-btn-hover-opacity: ${t.menuBtnHoverOpacity ?? 0.8};
+            --lyric-base-opacity: ${t.lyricBaseOpacity ?? 0.3};
+            --lyric-hover-opacity: ${t.lyricHoverOpacity ?? 0.5};
+            --lyric-past-opacity: ${t.lyricPastOpacity ?? 0.4};
+            --status-opacity: ${t.statusOpacity ?? 0.6};
+            --subtext-opacity: ${t.subtextOpacity ?? 0.6};
         }
         
         *, *::before, *::after {
@@ -216,9 +289,36 @@
         body {
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: ${t.bg};
-            color: #ffffff;
+            color: var(--text);
             display: flex;
             flex-direction: column;
+            position: relative;
+        }
+
+        /* Overlay chrome */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 1;
+            will-change: opacity;
+            transition: opacity 0.5s ease;
+        }
+
+        .overlay > * {
+            pointer-events: auto;
+        }
+
+        .overlay-spacer {
+            flex: 1 1 auto;
+            pointer-events: none;
+        }
+
+        .overlay.idle-hidden {
+            pointer-events: none;
         }
 
         /* Resize Handle at Top - Subtle */
@@ -229,18 +329,19 @@
         }
 
         .resize-handle:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--surface-3);
         }
 
         /* Header - Draggable */
         .header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
+            gap: 6px;
+            padding: 2px 6px;
+            min-height: 24px;
             background: ${t.headerBg};
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
             cursor: grab;
             user-select: none;
@@ -252,46 +353,26 @@
             cursor: grabbing;
         }
 
-        .album-art {
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            object-fit: cover;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
-            flex-shrink: 0;
-            -webkit-app-region: no-drag;
-            app-region: no-drag;
-        }
-
         .track-info {
             flex: 1;
             min-width: 0;
         }
 
-        .track-title {
-            font-size: 12px;
+        .track-line {
+            font-size: 10.5px;
             font-weight: 600;
-            color: #fff;
+            color: var(--text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 1px;
-        }
-
-        .track-artist {
-            font-size: 10px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.55);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.1;
         }
 
         /* Header Buttons */
         .header-btns {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 0;
             -webkit-app-region: no-drag;
             app-region: no-drag;
         }
@@ -299,38 +380,38 @@
         .menu-btn {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            padding: 6px 4px;
+            gap: 1px;
+            padding: 3px 3px;
             cursor: pointer;
-            opacity: 0.4;
+            opacity: var(--menu-btn-opacity);
             transition: opacity 0.15s;
             background: none;
             border: none;
         }
 
         .menu-btn:hover {
-            opacity: 0.8;
+            opacity: var(--menu-btn-hover-opacity);
         }
 
         .menu-row {
             display: flex;
-            gap: 2px;
+            gap: 1px;
         }
 
         .menu-dot {
             width: 2px;
             height: 2px;
-            background: #fff;
+            background: var(--text);
             border-radius: 50%;
         }
 
         .close-btn {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 18px;
+            color: var(--text-dim);
+            font-size: 14px;
             cursor: pointer;
-            padding: 4px 6px;
+            padding: 2px 4px;
             transition: all 0.15s;
             line-height: 1;
         }
@@ -350,7 +431,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(10, 10, 15, 0.98);
+            background: var(--settings-bg);
             z-index: 1000;
             display: none;
             flex-direction: column;
@@ -374,20 +455,20 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
         }
 
         .settings-title {
             font-size: 16px;
             font-weight: 600;
-            color: #fff;
+            color: var(--text);
         }
 
         .settings-close {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--surface-4);
             border: none;
-            color: #fff;
+            color: var(--text);
             width: 32px;
             height: 32px;
             border-radius: 8px;
@@ -400,7 +481,7 @@
         }
 
         .settings-close:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--surface-5);
         }
 
         .settings-content {
@@ -412,7 +493,7 @@
         .menu-section-title {
             font-size: 11px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 12px;
@@ -430,24 +511,24 @@
             padding: 12px 14px;
             cursor: pointer;
             transition: background 0.1s;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--surface-3);
             border-radius: 10px;
             margin-bottom: 8px;
         }
 
         .menu-item:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--surface-2);
         }
 
         .menu-item-label {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.85);
+            color: var(--text);
         }
 
         .menu-toggle {
             width: 44px;
             height: 24px;
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--surface-2);
             border-radius: 12px;
             position: relative;
             transition: background 0.2s;
@@ -464,7 +545,7 @@
             left: 3px;
             width: 18px;
             height: 18px;
-            background: #fff;
+            background: var(--toggle-knob);
             border-radius: 50%;
             transition: transform 0.2s;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -476,7 +557,7 @@
 
         .menu-divider {
             height: 1px;
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--border-strong);
             margin: 16px 0;
         }
 
@@ -487,7 +568,7 @@
             gap: 12px;
             width: 100%;
             padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--surface-3);
             border: none;
             border-radius: 10px;
             cursor: pointer;
@@ -495,7 +576,7 @@
         }
 
         .theme-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--surface-2);
         }
 
         .theme-btn-preview {
@@ -509,7 +590,7 @@
 
         .theme-btn-label {
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -517,11 +598,11 @@
         .theme-btn-name {
             font-size: 13px;
             font-weight: 500;
-            color: #fff;
+            color: var(--text);
         }
 
         .theme-btn-arrow {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-dim);
             font-size: 18px;
         }
 
@@ -532,7 +613,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(8, 8, 12, 0.98);
+            background: var(--theme-picker-bg);
             z-index: 1001;
             display: none;
             flex-direction: column;
@@ -548,14 +629,14 @@
             align-items: center;
             gap: 10px;
             padding: 12px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
         }
 
         .theme-picker-back {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--surface-4);
             border: none;
-            color: #fff;
+            color: var(--text);
             width: 28px;
             height: 28px;
             border-radius: 8px;
@@ -568,13 +649,13 @@
         }
 
         .theme-picker-back:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--surface-5);
         }
 
         .theme-picker-title {
             font-size: 14px;
             font-weight: 600;
-            color: #fff;
+            color: var(--text);
         }
 
         .theme-grid {
@@ -589,7 +670,7 @@
 
         .theme-grid::-webkit-scrollbar { width: 4px; }
         .theme-grid::-webkit-scrollbar-thumb { 
-            background: rgba(255, 255, 255, 0.15); 
+            background: var(--surface-2);
             border-radius: 2px; 
         }
 
@@ -602,21 +683,21 @@
             cursor: pointer;
             transition: all 0.15s;
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--text-muted);
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--surface-3);
             border: 2px solid transparent;
         }
 
         .theme-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
+            background: var(--surface-2);
+            color: var(--text);
         }
 
         .theme-item.active {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--surface-4);
             border-color: var(--accent);
-            color: #fff;
+            color: var(--text);
         }
 
         .theme-emoji { font-size: 20px; }
@@ -632,31 +713,51 @@
         .controls {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 8px;
+            justify-content: space-between;
+            padding: 6px 8px;
             background: ${t.controlsBg};
             flex-shrink: 0;
             -webkit-app-region: no-drag;
             app-region: no-drag;
         }
 
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .controls-group.center {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .controls-group.side {
+            width: 28px;
+            flex: 0 0 28px;
+        }
+
+        .controls-group.right {
+            justify-content: flex-end;
+        }
+
         .ctrl-btn {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--surface-1);
             border: none;
-            color: #fff;
-            width: 32px;
-            height: 32px;
+            color: var(--text);
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
             transition: all 0.15s ease;
         }
 
         .ctrl-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--surface-2);
             transform: scale(1.05);
         }
 
@@ -665,14 +766,14 @@
         }
 
         .ctrl-btn svg {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             fill: currentColor;
         }
 
         .ctrl-btn.play-btn {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             background: var(--accent);
             color: #000;
         }
@@ -683,20 +784,41 @@
         }
 
         .ctrl-btn.play-btn svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
         }
 
         .ctrl-btn.shuffle-on {
             color: var(--accent);
         }
 
+        .ctrl-btn.repeat-on,
+        .ctrl-btn.repeat-one {
+            color: var(--accent);
+        }
+
+        .ctrl-btn.repeat-one::after {
+            content: '1';
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #000;
+            font-size: 7px;
+            font-weight: 700;
+            line-height: 10px;
+            text-align: center;
+        }
+
         .ctrl-btn.liked {
-            color: #1ed760;
+            color: var(--accent);
         }
 
         .ctrl-btn.liked svg {
-            fill: #1ed760;
+            fill: var(--accent);
         }
 
         .ctrl-btn.hidden {
@@ -713,6 +835,8 @@
             -webkit-app-region: no-drag;
             app-region: no-drag;
             min-height: 0;
+            position: relative;
+            z-index: 1;
         }
 
         .lyrics-wrap.centered {
@@ -738,7 +862,8 @@
 
         .lyric {
             padding: 5px 0;
-            opacity: 0.3;
+            color: var(--text);
+            opacity: var(--lyric-base-opacity);
             transition: all 0.2s ease;
             cursor: pointer;
             line-height: 1.35;
@@ -746,7 +871,7 @@
         }
 
         .lyric:hover {
-            opacity: 0.5;
+            opacity: var(--lyric-hover-opacity);
         }
 
         .lyric.active {
@@ -758,7 +883,7 @@
         }
 
         .lyric.past {
-            opacity: 0.4;
+            opacity: var(--lyric-past-opacity);
         }
 
         /* No Lyrics / Loading */
@@ -770,7 +895,7 @@
             height: 100%;
             text-align: center;
             padding: 20px;
-            opacity: 0.6;
+            opacity: var(--status-opacity);
         }
 
         .status-msg .icon {
@@ -785,14 +910,14 @@
 
         .status-msg .subtext {
             font-size: 12px;
-            opacity: 0.6;
+            opacity: var(--subtext-opacity);
             margin-top: 4px;
         }
 
         .spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid var(--surface-2);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
@@ -802,12 +927,62 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Progress */
+        .progress-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px 2px 8px;
+            background: ${t.footerBg};
+            border-top: 1px solid var(--border);
+            max-height: 40px;
+            -webkit-app-region: no-drag;
+            app-region: no-drag;
+        }
+
+        .idle-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .idle-row .slider {
+            height: 3px;
+        }
+
+        .progress-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            min-width: 28px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-bar {
+            position: relative;
+            height: 3px;
+            flex: 1;
+            background: var(--surface-2);
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            border-radius: 999px;
+        }
+
         /* Footer */
         .footer {
             background: ${t.footerBg};
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid var(--border);
             flex-shrink: 0;
-            padding: 6px 10px;
+            padding: 4px 8px;
             -webkit-app-region: no-drag;
             app-region: no-drag;
         }
@@ -820,7 +995,7 @@
         .footer-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .footer-row.collapsed {
@@ -832,24 +1007,35 @@
         }
 
         .footer-row:not(.collapsed) + .footer-row:not(.collapsed) {
-            margin-top: 6px;
-            padding-top: 6px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px solid var(--border);
         }
 
         .control-label {
             font-size: 9px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             min-width: 24px;
+        }
+
+        .control-label,
+        #fontValue {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        #fontValue {
+            min-width: 28px;
+            text-align: right;
         }
 
         .slider {
             -webkit-appearance: none;
             flex: 1;
             height: 3px;
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--surface-2);
             border-radius: 2px;
             outline: none;
         }
@@ -871,19 +1057,19 @@
         .volume-icon {
             width: 14px;
             height: 14px;
-            fill: rgba(255, 255, 255, 0.5);
+            fill: var(--icon-muted);
             flex-shrink: 0;
             cursor: pointer;
             transition: fill 0.15s;
         }
 
         .volume-icon:hover {
-            fill: #fff;
+            fill: var(--text);
         }
 
         .value-display {
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             min-width: 28px;
             text-align: right;
         }
@@ -1035,16 +1221,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>♫ Lyrics</title>
-    <style id="themeStyles">${generateStyles(currentTheme)}</style>
+    <title>Lyrics</title>
+    <style id="themeStyles">${generateStyles(currentTheme, colorMode)}</style>
 </head>
 <body>
-    <div class="resize-handle" id="resizeHandle" title="Drag to resize"></div>
+    <div class="lyrics-wrap ${showLyrics ? '' : 'collapsed'} ${centerLyrics ? 'centered' : ''}" id="lyricsContainer">
+        <div class="status-msg">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <div class="overlay" id="chrome">
+        <div class="resize-handle" id="resizeHandle" title="Drag to resize"></div>
     <div class="header" id="dragHeader" title="Drag to move window">
-        <img class="album-art" id="albumArt" src="" alt="">
         <div class="track-info">
-            <div class="track-title" id="trackTitle">Loading...</div>
-            <div class="track-artist" id="trackArtist">-</div>
+            <div class="track-line" id="trackLine">Loading...</div>
         </div>
         <div class="header-btns">
             <button class="menu-btn" id="menuBtn" title="Settings">
@@ -1061,15 +1252,15 @@
                     <div class="menu-dot"></div>
                 </div>
             </button>
-            <button class="close-btn ${showCloseBtn ? '' : 'hidden'}" id="closeBtn" title="Close">×</button>
+            <button class="close-btn ${showCloseBtn ? '' : 'hidden'}" id="closeBtn" title="Close">x</button>
         </div>
     </div>
 
     <!-- Settings Panel - Full Screen -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-header">
-            <span class="settings-title">⚙️ Settings</span>
-            <button class="settings-close" id="settingsClose">✕</button>
+            <span class="settings-title">Settings</span>
+            <button class="settings-close" id="settingsClose">x</button>
         </div>
         <div class="settings-content">
             <button class="theme-btn" id="openThemePicker">
@@ -1078,12 +1269,25 @@
                     <div class="theme-btn-label">Theme</div>
                     <div class="theme-btn-name" id="currentThemeName">${THEMES[currentTheme].name}</div>
                 </div>
-                <span class="theme-btn-arrow">›</span>
+                <span class="theme-btn-arrow">></span>
             </button>
             
             <div class="menu-divider"></div>
+
+            <div class="menu-section-title">Appearance</div>
+            <div class="menu-item" id="toggleModeItem">
+                <span class="menu-item-label">Light Mode</span>
+                <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode"></div>
+            </div>
+            <div class="menu-item" id="idleDelayItem">
+                <span class="menu-item-label">Idle Fade</span>
+                <div class="idle-row">
+                    <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}">
+                    <span class="value-display" id="idleDelayValue">${(idleDelayMs / 1000).toFixed(1)}s</span>
+                </div>
+            </div>
             
-            <div class="menu-section-title">📺 Display</div>
+            <div class="menu-section-title">Display</div>
             <div class="menu-item" id="toggleLyricsItem">
                 <span class="menu-item-label">Show Lyrics</span>
                 <div class="menu-toggle ${showLyrics ? 'on' : ''}" id="toggleLyrics"></div>
@@ -1095,6 +1299,10 @@
             <div class="menu-item" id="toggleShuffleItem">
                 <span class="menu-item-label">Shuffle Button</span>
                 <div class="menu-toggle ${showShuffleBtn ? 'on' : ''}" id="toggleShuffle"></div>
+            </div>
+            <div class="menu-item" id="toggleRepeatItem">
+                <span class="menu-item-label">Repeat Button</span>
+                <div class="menu-toggle ${showRepeatBtn ? 'on' : ''}" id="toggleRepeat"></div>
             </div>
             <div class="menu-item" id="toggleLikeItem">
                 <span class="menu-item-label">Like Button</span>
@@ -1118,7 +1326,7 @@
     <!-- Theme Picker Panel -->
     <div class="theme-picker" id="themePicker">
         <div class="theme-picker-header">
-            <button class="theme-picker-back" id="themePickerBack">‹</button>
+            <button class="theme-picker-back" id="themePickerBack"><</button>
             <span class="theme-picker-title">Choose Theme</span>
         </div>
         <div class="theme-grid" id="themeGrid">
@@ -1126,30 +1334,8 @@
         </div>
     </div>
 
-    <div class="controls">
-        <button class="ctrl-btn" id="prevBtn" title="Previous">
-            <svg viewBox="0 0 16 16"><path d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>
-        </button>
-        <button class="ctrl-btn play-btn" id="playBtn" title="Play/Pause">
-            <svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/></svg>
-        </button>
-        <button class="ctrl-btn" id="nextBtn" title="Next">
-            <svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>
-        </button>
-        <button class="ctrl-btn ${showShuffleBtn ? '' : 'hidden'}" id="shuffleBtn" title="Shuffle">
-            <svg viewBox="0 0 16 16" id="shuffleIcon"><path d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06l2.306-2.306a.75.75 0 0 0 0-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5z"/><path d="m7.5 10.723.98-1.167 1.796 2.14a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.306 2.306a.75.75 0 0 1 0 1.06l-2.306 2.306a.75.75 0 1 1-1.06-1.06L14.109 14H12.16a3.75 3.75 0 0 1-2.873-1.34l-1.787-2.14z"/></svg>
-        </button>
-        <button class="ctrl-btn ${showLikeBtn ? '' : 'hidden'}" id="likeBtn" title="Save to Liked Songs">
-            <svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>
-        </button>
-    </div>
-    
-    <div class="lyrics-wrap ${showLyrics ? '' : 'collapsed'} ${centerLyrics ? 'centered' : ''}" id="lyricsContainer">
-        <div class="status-msg">
-            <div class="spinner"></div>
-        </div>
-    </div>
-    
+    <div class="overlay-spacer"></div>
+
     <div class="footer" id="footer">
         <div class="footer-row ${showFontSlider ? '' : 'collapsed'}" id="fontRow">
             <span class="control-label">Size</span>
@@ -1164,6 +1350,41 @@
             <span class="value-display" id="volumePercent">${currentVolume}%</span>
         </div>
     </div>
+
+    <div class="progress-row" id="progressRow">
+        <span class="progress-time" id="elapsedTime">0:00</span>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-time" id="totalTime">0:00</span>
+    </div>
+
+    <div class="controls">
+        <div class="controls-group side left"></div>
+        <div class="controls-group center">
+            <button class="ctrl-btn ${showShuffleBtn ? '' : 'hidden'}" id="shuffleBtn" title="Shuffle">
+                <svg viewBox="0 0 16 16" id="shuffleIcon"><path d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06l2.306-2.306a.75.75 0 0 0 0-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5z"/><path d="m7.5 10.723.98-1.167 1.796 2.14a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.306 2.306a.75.75 0 0 1 0 1.06l-2.306 2.306a.75.75 0 1 1-1.06-1.06L14.109 14H12.16a3.75 3.75 0 0 1-2.873-1.34l-1.787-2.14z"/></svg>
+            </button>
+            <button class="ctrl-btn" id="prevBtn" title="Previous">
+                <svg viewBox="0 0 16 16"><path d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>
+            </button>
+            <button class="ctrl-btn play-btn" id="playBtn" title="Play/Pause">
+                <svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/></svg>
+            </button>
+            <button class="ctrl-btn" id="nextBtn" title="Next">
+                <svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>
+            </button>
+            <button class="ctrl-btn ${showRepeatBtn ? '' : 'hidden'}" id="repeatBtn" title="Repeat Off">
+                <svg viewBox="0 0 16 16" id="repeatIcon"><path d="M11.17 3.5H5.5A2.5 2.5 0 0 0 3 6v1.25a.75.75 0 0 1-1.5 0V6A4 4 0 0 1 5.5 2h5.67l-.9-.9a.75.75 0 1 1 1.06-1.06l2.18 2.18a.75.75 0 0 1 0 1.06l-2.18 2.18a.75.75 0 1 1-1.06-1.06l.9-.9zM4.83 12.5H10.5A2.5 2.5 0 0 0 13 10V8.75a.75.75 0 0 1 1.5 0V10a4 4 0 0 1-4 4H4.83l.9.9a.75.75 0 1 1-1.06 1.06L2.5 13.78a.75.75 0 0 1 0-1.06l2.18-2.18a.75.75 0 1 1 1.06 1.06l-.9.9z"/></svg>
+            </button>
+        </div>
+        <div class="controls-group side right">
+            <button class="ctrl-btn ${showLikeBtn ? '' : 'hidden'}" id="likeBtn" title="Save to Liked Songs">
+                <svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>`);
         doc.close();
@@ -1176,6 +1397,7 @@
         const playBtn = doc.getElementById('playBtn');
         const nextBtn = doc.getElementById('nextBtn');
         const shuffleBtn = doc.getElementById('shuffleBtn');
+        const repeatBtn = doc.getElementById('repeatBtn');
         const likeBtn = doc.getElementById('likeBtn');
         const fontSlider = doc.getElementById('fontSlider');
         const fontValue = doc.getElementById('fontValue');
@@ -1184,13 +1406,24 @@
         const volumeSlider = doc.getElementById('volumeSlider');
         const volumePercent = doc.getElementById('volumePercent');
         const volumeIconWrap = doc.getElementById('volumeIconWrap');
+        const progressRow = doc.getElementById('progressRow');
+        const progressBar = doc.getElementById('progressBar');
+        const progressFill = doc.getElementById('progressFill');
+        const elapsedTime = doc.getElementById('elapsedTime');
+        const totalTime = doc.getElementById('totalTime');
         const lyricsContainer = doc.getElementById('lyricsContainer');
         const toggleLyricsItem = doc.getElementById('toggleLyricsItem');
         const toggleLyrics = doc.getElementById('toggleLyrics');
         const toggleCenterItem = doc.getElementById('toggleCenterItem');
         const toggleCenter = doc.getElementById('toggleCenter');
+        const toggleModeItem = doc.getElementById('toggleModeItem');
+        const toggleMode = doc.getElementById('toggleMode');
+        const idleDelaySlider = doc.getElementById('idleDelaySlider');
+        const idleDelayValue = doc.getElementById('idleDelayValue');
         const toggleShuffleItem = doc.getElementById('toggleShuffleItem');
         const toggleShuffle = doc.getElementById('toggleShuffle');
+        const toggleRepeatItem = doc.getElementById('toggleRepeatItem');
+        const toggleRepeat = doc.getElementById('toggleRepeat');
         const toggleLikeItem = doc.getElementById('toggleLikeItem');
         const toggleLike = doc.getElementById('toggleLike');
         const toggleCloseItem = doc.getElementById('toggleCloseItem');
@@ -1207,6 +1440,8 @@
         const themePickerBack = doc.getElementById('themePickerBack');
         const themeGrid = doc.getElementById('themeGrid');
         const closeBtn = doc.getElementById('closeBtn');
+        const chrome = doc.getElementById('chrome');
+        let idleTimer = null;
 
         // Close miniplayer
         closeBtn.onclick = () => {
@@ -1217,6 +1452,7 @@
         menuBtn.onclick = (e) => {
             e.stopPropagation();
             settingsPanel.classList.add('open');
+            setChromeHidden(false);
         };
 
         // Close settings panel
@@ -1227,12 +1463,57 @@
         // Open theme picker panel
         openThemePickerBtn.onclick = () => {
             themePicker.classList.add('open');
+            setChromeHidden(false);
         };
 
         // Close theme picker (back to settings)
         themePickerBack.onclick = () => {
             themePicker.classList.remove('open');
         };
+
+        let chromeFadeAnim = null;
+        let chromeHidden = false;
+
+        function setChromeHidden(hidden) {
+            if (!chrome) return;
+            if (hidden === chromeHidden) return;
+            chromeHidden = hidden;
+            chrome.classList.toggle('idle-hidden', hidden);
+
+            const targetOpacity = hidden ? 0 : 1;
+            const computedOpacity = parseFloat(getComputedStyle(chrome).opacity);
+            const startOpacity = Number.isFinite(computedOpacity) ? computedOpacity : (hidden ? 1 : 0);
+
+            if (chromeFadeAnim) chromeFadeAnim.cancel();
+            if (chrome.animate) {
+                chromeFadeAnim = chrome.animate(
+                    [{ opacity: startOpacity }, { opacity: targetOpacity }],
+                    { duration: 500, easing: 'ease', fill: 'forwards' }
+                );
+            } else {
+                chrome.style.opacity = String(targetOpacity);
+            }
+        }
+
+        function resetIdleTimer() {
+            if (idleTimer) clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                if (settingsPanel.classList.contains('open')) return;
+                if (themePicker.classList.contains('open')) return;
+                setChromeHidden(true);
+            }, idleDelayMs);
+        }
+
+        function handleActivity() {
+            if (chromeHidden) setChromeHidden(false);
+            resetIdleTimer();
+        }
+
+        doc.addEventListener('mousemove', handleActivity);
+        doc.addEventListener('mousedown', handleActivity);
+        doc.addEventListener('keydown', handleActivity);
+        doc.addEventListener('wheel', handleActivity);
+        doc.addEventListener('touchstart', handleActivity);
 
         // Theme selection
         themeGrid.onclick = (e) => {
@@ -1244,7 +1525,7 @@
                     localStorage.setItem('lyrics-overlay-theme', currentTheme);
                     
                     // Update styles
-                    themeStyles.textContent = generateStyles(currentTheme);
+                    themeStyles.textContent = generateStyles(currentTheme, colorMode);
                     
                     // Update theme button
                     currentThemeEmoji.textContent = THEMES[currentTheme].emoji;
@@ -1277,11 +1558,33 @@
             localStorage.setItem('lyrics-overlay-centerlyrics', centerLyrics);
         };
 
+        toggleModeItem.onclick = () => {
+            colorMode = colorMode === 'light' ? 'dark' : 'light';
+            toggleMode.classList.toggle('on', colorMode === 'light');
+            localStorage.setItem('lyrics-overlay-colormode', colorMode);
+            themeStyles.textContent = generateStyles(currentTheme, colorMode);
+        };
+
+        idleDelaySlider.oninput = (e) => {
+            idleDelayMs = parseInt(e.target.value, 10);
+            if (Number.isNaN(idleDelayMs)) return;
+            idleDelayValue.textContent = `${(idleDelayMs / 1000).toFixed(1)}s`;
+            localStorage.setItem('lyrics-overlay-idledelay', idleDelayMs);
+            resetIdleTimer();
+        };
+
         toggleShuffleItem.onclick = () => {
             showShuffleBtn = !showShuffleBtn;
             toggleShuffle.classList.toggle('on', showShuffleBtn);
             shuffleBtn.classList.toggle('hidden', !showShuffleBtn);
             localStorage.setItem('lyrics-overlay-showshuffle', showShuffleBtn);
+        };
+
+        toggleRepeatItem.onclick = () => {
+            showRepeatBtn = !showRepeatBtn;
+            toggleRepeat.classList.toggle('on', showRepeatBtn);
+            repeatBtn.classList.toggle('hidden', !showRepeatBtn);
+            localStorage.setItem('lyrics-overlay-showrepeat', showRepeatBtn);
         };
 
         toggleLikeItem.onclick = () => {
@@ -1320,6 +1623,15 @@
             Spicetify.Player.toggleShuffle();
             updateShuffleState();
         };
+        repeatBtn.onclick = () => {
+            const current = resolveRepeatMode();
+            const next = current === 'off' ? 'context' : current === 'context' ? 'track' : 'off';
+            setRepeatMode(next);
+            pendingRepeatMode = next;
+            pendingRepeatAt = Date.now();
+            applyRepeatUi(next);
+            setTimeout(updateRepeatState, 120);
+        };
 
         likeBtn.onclick = () => {
             Spicetify.Player.toggleHeart();
@@ -1331,6 +1643,37 @@
             shuffleBtn.classList.toggle('shuffle-on', isShuffled);
         }
         updateShuffleState();
+
+        function setRepeatMode(mode) {
+            if (!Spicetify.Player.setRepeat) return;
+            const rawMode = getRepeatRawState();
+            if (typeof rawMode === 'string') {
+                Spicetify.Player.setRepeat(mode);
+                return;
+            }
+            if (typeof rawMode === 'number') {
+                const mapped = mode === 'track' ? 2 : mode === 'context' ? 1 : 0;
+                Spicetify.Player.setRepeat(mapped);
+                return;
+            }
+            if (typeof rawMode === 'boolean') {
+                Spicetify.Player.setRepeat(mode !== 'off');
+                return;
+            }
+            Spicetify.Player.setRepeat(mode);
+        }
+
+        function updateRepeatState() {
+            const mode = resolveRepeatMode();
+            applyRepeatUi(mode);
+        }
+
+        function applyRepeatUi(mode) {
+            repeatBtn.classList.toggle('repeat-on', mode === 'context');
+            repeatBtn.classList.toggle('repeat-one', mode === 'track');
+            repeatBtn.title = mode === 'track' ? 'Repeat One' : mode === 'context' ? 'Repeat All' : 'Repeat Off';
+        }
+        updateRepeatState();
 
         // Update like icon (filled vs outline)
         function updateLikeIcon(isLiked) {
@@ -1399,6 +1742,18 @@
             }
         };
 
+        // Progress bar seek
+        if (progressBar) {
+            progressBar.onclick = (e) => {
+                const durationMs = getTrackDurationMs();
+                if (!durationMs) return;
+                const rect = progressBar.getBoundingClientRect();
+                const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+                Spicetify.Player.seek(Math.round(durationMs * ratio));
+                updatePipProgress();
+            };
+        }
+
         // Handle window close
         win.addEventListener('pagehide', () => {
             pipWindow = null;
@@ -1418,6 +1773,8 @@
         }
         
         updatePipContent();
+        updatePipProgress();
+        handleActivity();
         initialLoad();
         startUpdateLoop();
     }
@@ -1434,15 +1791,11 @@
         const track = data.item;
 
         // Update track info
-        const titleEl = doc.getElementById('trackTitle');
-        const artistEl = doc.getElementById('trackArtist');
-        const albumArtEl = doc.getElementById('albumArt');
-
-        if (titleEl) titleEl.textContent = track.name || 'Unknown';
-        if (artistEl) artistEl.textContent = track.artists?.map(a => a.name).join(', ') || 'Unknown';
-        if (albumArtEl) {
-            const imgUrl = track.album?.images?.[0]?.url || track.metadata?.image_url || '';
-            albumArtEl.src = imgUrl;
+        const trackLineEl = doc.getElementById('trackLine');
+        if (trackLineEl) {
+            const title = track.name || 'Unknown';
+            const artist = track.artists?.map(a => a.name).join(', ') || 'Unknown';
+            trackLineEl.textContent = `${title} - ${artist}`;
         }
 
         // Update play button
@@ -1450,6 +1803,9 @@
 
         // Update volume
         updatePipVolume();
+
+        // Update progress
+        updatePipProgress();
 
         // Check if track changed
         if (track.uri !== currentTrackUri) {
@@ -1475,6 +1831,68 @@
         } else {
             likeIcon.innerHTML = '<path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/>';
         }
+    }
+
+    function getRepeatRawState() {
+        const dataRepeat = Spicetify.Player?.data?.repeat;
+        if (dataRepeat !== undefined && dataRepeat !== null) return dataRepeat;
+        return Spicetify.Player.getRepeat?.();
+    }
+
+    function resolveRepeatMode() {
+        const mode = normalizeRepeatModeValue(getRepeatRawState());
+        if (pendingRepeatMode) {
+            if (mode === pendingRepeatMode) {
+                pendingRepeatMode = null;
+                pendingRepeatAt = 0;
+                return mode;
+            }
+            if (Date.now() - pendingRepeatAt < REPEAT_PENDING_MS) {
+                return pendingRepeatMode;
+            }
+            pendingRepeatMode = null;
+            pendingRepeatAt = 0;
+        }
+        return mode;
+    }
+
+    function normalizeRepeatModeValue(rawMode) {
+        if (typeof rawMode === 'string') {
+            const normalized = rawMode.toLowerCase();
+            if (normalized === 'context' || normalized === 'track' || normalized === 'off') return normalized;
+            return 'off';
+        }
+        if (typeof rawMode === 'number') {
+            if (rawMode === 2) return 'track';
+            if (rawMode === 1) return 'context';
+            return 'off';
+        }
+        if (typeof rawMode === 'boolean') return rawMode ? 'context' : 'off';
+        return 'off';
+    }
+
+    function updatePipShuffleState() {
+        if (!pipWindow || pipWindow.closed) return;
+
+        const doc = pipWindow.document;
+        const shuffleBtn = doc.getElementById('shuffleBtn');
+        if (!shuffleBtn) return;
+
+        const isShuffled = Spicetify.Player.getShuffle();
+        shuffleBtn.classList.toggle('shuffle-on', isShuffled);
+    }
+
+    function updatePipRepeatState() {
+        if (!pipWindow || pipWindow.closed) return;
+
+        const doc = pipWindow.document;
+        const repeatBtn = doc.getElementById('repeatBtn');
+        if (!repeatBtn) return;
+
+        const mode = resolveRepeatMode();
+        repeatBtn.classList.toggle('repeat-on', mode === 'context');
+        repeatBtn.classList.toggle('repeat-one', mode === 'track');
+        repeatBtn.title = mode === 'track' ? 'Repeat One' : mode === 'context' ? 'Repeat All' : 'Repeat Off';
     }
 
     function updatePipPlayButton() {
@@ -1508,6 +1926,32 @@
         }
     }
 
+    function updatePipProgress() {
+        if (!pipWindow || pipWindow.closed) return;
+
+        const doc = pipWindow.document;
+        const progressFill = doc.getElementById('progressFill');
+        const elapsedTime = doc.getElementById('elapsedTime');
+        const totalTime = doc.getElementById('totalTime');
+        const progressBar = doc.getElementById('progressBar');
+        if (!progressFill || !elapsedTime || !totalTime || !progressBar) return;
+
+        const durationMs = getTrackDurationMs();
+        const progressMs = Spicetify.Player.getProgress() || 0;
+
+        if (!durationMs) {
+            progressFill.style.width = '0%';
+            elapsedTime.textContent = '0:00';
+            totalTime.textContent = '0:00';
+            return;
+        }
+
+        const ratio = Math.min(1, Math.max(0, progressMs / durationMs));
+        progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
+        elapsedTime.textContent = formatTime(progressMs);
+        totalTime.textContent = formatTime(durationMs);
+    }
+
     async function loadLyrics(uri) {
         if (!pipWindow || pipWindow.closed) return;
 
@@ -1523,7 +1967,7 @@
         if (!currentLyrics || !currentLyrics.lines?.length) {
             container.innerHTML = `
                 <div class="status-msg">
-                    <div class="icon">🎵</div>
+                    <div class="icon">!</div>
                     <div class="text">No lyrics available</div>
                     <div class="subtext">Lyrics not found for this track</div>
                 </div>
@@ -1540,7 +1984,7 @@
 
         container.innerHTML = lyricsHtml || `
             <div class="status-msg">
-                <div class="icon">🎶</div>
+                <div class="icon">i</div>
                 <div class="text">Instrumental</div>
             </div>
         `;
@@ -1604,6 +2048,9 @@
             updateCurrentLyric();
             updatePipPlayButton();
             updatePipLikeState();
+            updatePipShuffleState();
+            updatePipRepeatState();
+            updatePipProgress();
         }, CONFIG.updateInterval);
     }
 
@@ -1612,6 +2059,25 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function getTrackDurationMs() {
+        const item = Spicetify.Player.data?.item;
+        return (
+            item?.duration?.milliseconds ??
+            item?.duration_ms ??
+            item?.duration ??
+            Spicetify.Player.getDuration?.() ??
+            0
+        );
+    }
+
+    function formatTime(ms) {
+        if (!ms || ms < 0) return '0:00';
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     // ==================== TOPBAR BUTTON ====================
@@ -1645,3 +2111,4 @@
     console.log('[Lyric Miniplayer] Ready!');
 
 })();
+

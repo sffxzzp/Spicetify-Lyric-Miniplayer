@@ -2,9 +2,11 @@
 // Creates a floating Picture-in-Picture lyrics window that stays on top of all apps
 
 (async function LyricsOverlay() {
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
     // Wait for Spicetify to be fully loaded
     while (!Spicetify?.Player?.data || !Spicetify?.Platform || !Spicetify?.CosmosAsync) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await sleep(100);
     }
 
     // ==================== CONFIG ====================
@@ -371,6 +373,114 @@
         { value: 'zh-TW', labelKey: 'languageChineseTraditional' },
     ];
 
+    const STORAGE_KEYS = {
+        language: 'lyrics-overlay-language',
+        fontSize: 'lyrics-overlay-fontsize',
+        showFont: 'lyrics-overlay-showfont',
+        showVol: 'lyrics-overlay-showvol',
+        showLyrics: 'lyrics-overlay-showlyrics',
+        showShuffle: 'lyrics-overlay-showshuffle',
+        showRepeat: 'lyrics-overlay-showrepeat',
+        showLike: 'lyrics-overlay-showlike',
+        showClose: 'lyrics-overlay-showclose',
+        showProgress: 'lyrics-overlay-showprogress',
+        showControls: 'lyrics-overlay-showcontrols',
+        centerLyrics: 'lyrics-overlay-centerlyrics',
+        idleDelay: 'lyrics-overlay-idledelay',
+        colorMode: 'lyrics-overlay-colormode',
+        theme: 'lyrics-overlay-theme',
+    };
+
+    const storage = createStorage();
+
+    function createStorage() {
+        const api = Spicetify?.LocalStorage;
+        if (api && typeof api.get === 'function' && typeof api.set === 'function') {
+            return {
+                get: api.get.bind(api),
+                set: api.set.bind(api),
+                remove: api.remove ? api.remove.bind(api) : () => {},
+            };
+        }
+        return {
+            get: (key) => localStorage.getItem(key),
+            set: (key, value) => localStorage.setItem(key, value),
+            remove: (key) => localStorage.removeItem(key),
+        };
+    }
+
+    function safeGet(key) {
+        try {
+            return storage.get(key);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function safeSet(key, value) {
+        try {
+            storage.set(key, String(value));
+        } catch (e) {}
+    }
+
+    function getStoredBool(key, fallback) {
+        const raw = safeGet(key);
+        if (raw === null || raw === undefined) return fallback;
+        if (typeof raw === 'boolean') return raw;
+        return raw === 'true';
+    }
+
+    function getStoredInt(key, fallback) {
+        const raw = safeGet(key);
+        const parsed = parseInt(raw, 10);
+        return Number.isNaN(parsed) ? fallback : parsed;
+    }
+
+    function withIds(doc, ids) {
+        return Object.fromEntries(ids.map((id) => [id, doc.getElementById(id)]));
+    }
+
+    function setHidden(el, hidden) {
+        if (!el) return;
+        el.classList.toggle('hidden', hidden);
+    }
+
+    function setCollapsed(el, collapsed) {
+        if (!el) return;
+        el.classList.toggle('collapsed', collapsed);
+    }
+
+    function setToggleState(toggle, on) {
+        if (!toggle) return;
+        toggle.classList.toggle('on', on);
+    }
+
+    function bindToggle({ item, toggle, get, set, apply, storageKey }) {
+        if (!item || !toggle) return;
+        item.onclick = () => {
+            const next = !get();
+            set(next);
+            setToggleState(toggle, next);
+            if (apply) apply(next);
+            if (storageKey) safeSet(storageKey, next);
+        };
+    }
+
+    function getPipUi() {
+        if (!pipWindow || pipWindow.closed || !pipUi) return null;
+        return pipUi;
+    }
+
+    function on(el, event, handler) {
+        if (!el) return;
+        el.addEventListener(event, handler);
+    }
+
+    function onClick(el, handler) {
+        if (!el) return;
+        el.onclick = handler;
+    }
+
     function resolveLanguage(raw) {
         const normalized = (raw || '').toLowerCase();
         if (normalized === 'zh-tw' || normalized.startsWith('zh-tw')) return 'zh-TW';
@@ -393,7 +503,7 @@
     let languageSetting = 'auto';
     let language = 'en';
     try {
-        const savedLanguage = localStorage.getItem('lyrics-overlay-language');
+        const savedLanguage = safeGet(STORAGE_KEYS.language);
         if (savedLanguage) languageSetting = savedLanguage;
     } catch (e) {}
 
@@ -411,6 +521,7 @@
 
     // ==================== STATE ====================
     let pipWindow = null;
+    let pipUi = null;
     let currentLyrics = null;
     let currentTrackUri = null;
     let updateIntervalId = null;
@@ -439,36 +550,26 @@
 
     // Load saved settings
     try {
-        const savedSize = localStorage.getItem('lyrics-overlay-fontsize');
-        if (savedSize) fontSize = parseInt(savedSize);
-        const savedShowFont = localStorage.getItem('lyrics-overlay-showfont');
-        if (savedShowFont !== null) showFontSlider = savedShowFont === 'true';
-        const savedShowVol = localStorage.getItem('lyrics-overlay-showvol');
-        if (savedShowVol !== null) showVolumeSlider = savedShowVol === 'true';
-        const savedShowLyrics = localStorage.getItem('lyrics-overlay-showlyrics');
-        if (savedShowLyrics !== null) showLyrics = savedShowLyrics === 'true';
-        const savedShowShuffle = localStorage.getItem('lyrics-overlay-showshuffle');
-        if (savedShowShuffle !== null) showShuffleBtn = savedShowShuffle === 'true';
-        const savedShowRepeat = localStorage.getItem('lyrics-overlay-showrepeat');
-        if (savedShowRepeat !== null) showRepeatBtn = savedShowRepeat === 'true';
-        const savedShowLike = localStorage.getItem('lyrics-overlay-showlike');
-        if (savedShowLike !== null) showLikeBtn = savedShowLike === 'true';
-        const savedShowClose = localStorage.getItem('lyrics-overlay-showclose');
-        if (savedShowClose !== null) showCloseBtn = savedShowClose === 'true';
-        const savedShowProgress = localStorage.getItem('lyrics-overlay-showprogress');
-        if (savedShowProgress !== null) showProgressBar = savedShowProgress === 'true';
-        const savedShowControls = localStorage.getItem('lyrics-overlay-showcontrols');
-        if (savedShowControls !== null) showControls = savedShowControls === 'true';
-        const savedCenterLyrics = localStorage.getItem('lyrics-overlay-centerlyrics');
-        if (savedCenterLyrics !== null) centerLyrics = savedCenterLyrics === 'true';
-        const savedIdleDelay = localStorage.getItem('lyrics-overlay-idledelay');
-        if (savedIdleDelay) {
-            const parsedIdle = parseInt(savedIdleDelay, 10);
-            if (!Number.isNaN(parsedIdle)) idleDelayMs = Math.min(30000, Math.max(500, parsedIdle));
-        }
-        const savedColorMode = localStorage.getItem('lyrics-overlay-colormode');
+        const savedSize = getStoredInt(STORAGE_KEYS.fontSize, fontSize);
+        fontSize = savedSize;
+
+        showFontSlider = getStoredBool(STORAGE_KEYS.showFont, showFontSlider);
+        showVolumeSlider = getStoredBool(STORAGE_KEYS.showVol, showVolumeSlider);
+        showLyrics = getStoredBool(STORAGE_KEYS.showLyrics, showLyrics);
+        showShuffleBtn = getStoredBool(STORAGE_KEYS.showShuffle, showShuffleBtn);
+        showRepeatBtn = getStoredBool(STORAGE_KEYS.showRepeat, showRepeatBtn);
+        showLikeBtn = getStoredBool(STORAGE_KEYS.showLike, showLikeBtn);
+        showCloseBtn = getStoredBool(STORAGE_KEYS.showClose, showCloseBtn);
+        showProgressBar = getStoredBool(STORAGE_KEYS.showProgress, showProgressBar);
+        showControls = getStoredBool(STORAGE_KEYS.showControls, showControls);
+        centerLyrics = getStoredBool(STORAGE_KEYS.centerLyrics, centerLyrics);
+
+        const parsedIdle = getStoredInt(STORAGE_KEYS.idleDelay, idleDelayMs);
+        if (!Number.isNaN(parsedIdle)) idleDelayMs = Math.min(30000, Math.max(500, parsedIdle));
+
+        const savedColorMode = safeGet(STORAGE_KEYS.colorMode);
         if (savedColorMode === 'light' || savedColorMode === 'dark') colorMode = savedColorMode;
-        const savedTheme = localStorage.getItem('lyrics-overlay-theme');
+        const savedTheme = safeGet(STORAGE_KEYS.theme);
         if (savedTheme && THEMES[savedTheme]) currentTheme = savedTheme;
     } catch (e) {}
 
@@ -1946,6 +2047,7 @@
         if (pipWindow && !pipWindow.closed) {
             pipWindow.close();
             pipWindow = null;
+            pipUi = null;
             return;
         }
 
@@ -2026,12 +2128,169 @@
         }).join('');
     }
 
+    const ICONS = {
+        shuffle: `<svg viewBox="0 0 16 16" id="shuffleIcon"><path d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06l2.306-2.306a.75.75 0 0 0 0-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5z"/><path d="m7.5 10.723.98-1.167 1.796 2.14a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.306 2.306a.75.75 0 0 1 0 1.06l-2.306 2.306a.75.75 0 1 1-1.06-1.06L14.109 14H12.16a3.75 3.75 0 0 1-2.873-1.34l-1.787-2.14z"/></svg>`,
+        prev: `<svg viewBox="0 0 16 16"><path d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>`,
+        play: `<svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/></svg>`,
+        next: `<svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>`,
+        repeat: `<svg viewBox="0 0 16 16" id="repeatIcon"><path d="M11.17 3.5H5.5A2.5 2.5 0 0 0 3 6v1.25a.75.75 0 0 1-1.5 0V6A4 4 0 0 1 5.5 2h5.67l-.9-.9a.75.75 0 1 1 1.06-1.06l2.18 2.18a.75.75 0 0 1 0 1.06l-2.18 2.18a.75.75 0 1 1-1.06-1.06l.9-.9zM4.83 12.5H10.5A2.5 2.5 0 0 0 13 10V8.75a.75.75 0 0 1 1.5 0V10a4 4 0 0 1-4 4H4.83l.9.9a.75.75 0 1 1-1.06 1.06L2.5 13.78a.75.75 0 0 1 0-1.06l2.18-2.18a.75.75 0 1 1 1.06 1.06l-.9.9z"/></svg>`,
+        like: `<svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>`,
+    };
+
     function setupPipWindow(win) {
         const doc = win.document;
         const currentVolume = Math.round((Spicetify.Player.getVolume() || 0) * 100);
 
-        // Build the HTML
-        doc.write(`<!DOCTYPE html>
+        const hiddenClass = (visible) => (visible ? '' : 'hidden');
+        const collapsedClass = (expanded) => (expanded ? '' : 'collapsed');
+        const toggleItem = (itemId, labelId, labelKey, toggleId, isOn) => `
+            <div class="menu-item" id="${itemId}">
+                <span class="menu-item-label" id="${labelId}">${t(labelKey)}</span>
+                <div class="menu-toggle ${isOn ? 'on' : ''}" id="${toggleId}"></div>
+            </div>
+        `;
+        const controlButton = (id, titleKey, svg, extraClass = '') => `
+            <button class="ctrl-btn ${extraClass}" id="${id}" title="${t(titleKey)}">
+                ${svg}
+            </button>
+        `;
+
+
+        const buildHeader = () => `
+        <div class="resize-handle" id="resizeHandle" title="${t('dragResize')}"></div>
+        <div class="header" id="dragHeader" title="${t('dragMove')}">
+            <div class="track-info">
+                <div class="track-line" id="trackLine" data-loading="true">${t('loading')}</div>
+            </div>
+            <div class="header-btns">
+                <button class="menu-btn" id="menuBtn" title="${t('settings')}">
+                    <div class="menu-row">
+                        <div class="menu-dot"></div>
+                        <div class="menu-dot"></div>
+                    </div>
+                    <div class="menu-row">
+                        <div class="menu-dot"></div>
+                        <div class="menu-dot"></div>
+                    </div>
+                    <div class="menu-row">
+                        <div class="menu-dot"></div>
+                        <div class="menu-dot"></div>
+                    </div>
+                </button>
+                <button class="close-btn ${hiddenClass(showCloseBtn)}" id="closeBtn" title="${t('close')}">x</button>
+            </div>
+        </div>
+        `;
+
+        const buildSettingsPanel = () => `
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <span class="settings-title" id="settingsTitle">${t('settings')}</span>
+                <button class="settings-close" id="settingsClose" title="${t('close')}">x</button>
+            </div>
+            <div class="settings-content">
+                <button class="theme-btn" id="openThemePicker" title="${t('chooseTheme')}">
+                    <div class="theme-btn-info">
+                        <div class="theme-btn-label" id="themeBtnLabel">${t('theme')}</div>
+                        <div class="theme-btn-name" id="currentThemeName">${THEMES[currentTheme].name}</div>
+                    </div>
+                    <span class="theme-btn-arrow">></span>
+                </button>
+                
+                <div class="menu-section-title" id="generalTitle">${t('general')}</div>
+                <div class="menu-item menu-item-select" id="languageItem">
+                    <span class="menu-item-label" id="languageLabel">${t('language')}</span>
+                    <select class="menu-select" id="languageSelect">
+                        ${generateLanguageOptions()}
+                    </select>
+                </div>
+
+                <div class="menu-divider"></div>
+
+                <div class="menu-section-title" id="appearanceTitle">${t('appearance')}</div>
+                <div class="menu-item" id="toggleModeItem">
+                    <span class="menu-item-label" id="toggleModeLabel">${t('lightMode')}</span>
+                    <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode"></div>
+                </div>
+                <div class="menu-item" id="idleDelayItem">
+                    <span class="menu-item-label" id="idleDelayLabel">${t('idleFade')}</span>
+                    <div class="idle-row">
+                        <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}">
+                        <span class="value-display" id="idleDelayValue">${(idleDelayMs / 1000).toFixed(1)}s</span>
+                    </div>
+                </div>
+                
+                <div class="menu-section-title" id="displayTitle">${t('display')}</div>
+                ${toggleItem('toggleLyricsItem', 'toggleLyricsLabel', 'showLyrics', 'toggleLyrics', showLyrics)}
+                ${toggleItem('toggleCenterItem', 'toggleCenterLabel', 'centerLyrics', 'toggleCenter', centerLyrics)}
+                ${toggleItem('toggleShuffleItem', 'toggleShuffleLabel', 'shuffleButton', 'toggleShuffle', showShuffleBtn)}
+                ${toggleItem('toggleRepeatItem', 'toggleRepeatLabel', 'repeatButton', 'toggleRepeat', showRepeatBtn)}
+                ${toggleItem('toggleLikeItem', 'toggleLikeLabel', 'likeButton', 'toggleLike', showLikeBtn)}
+                ${toggleItem('toggleCloseItem', 'toggleCloseLabel', 'closeButton', 'toggleClose', showCloseBtn)}
+                ${toggleItem('toggleFontItem', 'toggleFontLabel', 'fontSizeSlider', 'toggleFont', showFontSlider)}
+                ${toggleItem('toggleVolItem', 'toggleVolLabel', 'volumeSlider', 'toggleVol', showVolumeSlider)}
+                ${toggleItem('toggleProgressItem', 'toggleProgressLabel', 'progressBar', 'toggleProgress', showProgressBar)}
+                ${toggleItem('toggleControlsItem', 'toggleControlsLabel', 'controlsBar', 'toggleControls', showControls)}
+            </div>
+        </div>
+        `;
+
+        const buildThemePicker = () => `
+        <div class="theme-picker" id="themePicker">
+            <div class="theme-picker-header">
+                <button class="theme-picker-back" id="themePickerBack" title="${t('back')}"><</button>
+                <span class="theme-picker-title" id="themePickerTitle">${t('chooseTheme')}</span>
+            </div>
+            <div class="theme-grid" id="themeGrid">
+                ${generateThemeMenuItems()}
+            </div>
+        </div>
+        `;
+
+        const buildFooter = () => `
+        <div class="footer" id="footer">
+            <div class="footer-row ${collapsedClass(showFontSlider)}" id="fontRow">
+                <span class="control-label" id="fontSizeLabel">${t('sizeLabel')}</span>
+                <input type="range" class="slider" id="fontSlider" min="${CONFIG.minFontSize}" max="${CONFIG.maxFontSize}" value="${fontSize}">
+                <span class="value-display" id="fontValue">${fontSize}px</span>
+            </div>
+            <div class="footer-row ${collapsedClass(showVolumeSlider)}" id="volumeRow">
+                <div id="volumeIconWrap">
+                    ${getVolumeIconSvg(currentVolume)}
+                </div>
+                <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="${currentVolume}">
+                <span class="value-display" id="volumePercent">${currentVolume}%</span>
+            </div>
+        </div>
+        `;
+
+        const buildProgressRow = () => `
+        <div class="progress-row ${hiddenClass(showProgressBar)}" id="progressRow">
+            <span class="progress-time" id="elapsedTime">0:00</span>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span class="progress-time" id="totalTime">0:00</span>
+        </div>
+        `;
+
+        const buildControls = () => `
+        <div class="controls ${hiddenClass(showControls)}">
+            <div class="controls-group side left"></div>
+            <div class="controls-group center">
+                ${controlButton('shuffleBtn', 'shuffle', ICONS.shuffle, hiddenClass(showShuffleBtn))}
+                ${controlButton('prevBtn', 'previous', ICONS.prev)}
+                ${controlButton('playBtn', 'playPause', ICONS.play, 'play-btn')}
+                ${controlButton('nextBtn', 'next', ICONS.next)}
+                ${controlButton('repeatBtn', 'repeatOff', ICONS.repeat, hiddenClass(showRepeatBtn))}
+            </div>
+            <div class="controls-group side right">
+                ${controlButton('likeBtn', 'saveLiked', ICONS.like, hiddenClass(showLikeBtn))}
+            </div>
+        </div>
+        `;
+
+        const buildHtml = () => `<!DOCTYPE html>
 <html lang="${language}">
 <head>
     <meta charset="UTF-8">
@@ -2047,286 +2306,202 @@
     </div>
 
     <div class="overlay" id="chrome">
-        <div class="resize-handle" id="resizeHandle" title="${t('dragResize')}"></div>
-    <div class="header" id="dragHeader" title="${t('dragMove')}">
-        <div class="track-info">
-            <div class="track-line" id="trackLine" data-loading="true">${t('loading')}</div>
-        </div>
-        <div class="header-btns">
-            <button class="menu-btn" id="menuBtn" title="${t('settings')}">
-                <div class="menu-row">
-                    <div class="menu-dot"></div>
-                    <div class="menu-dot"></div>
-                </div>
-                <div class="menu-row">
-                    <div class="menu-dot"></div>
-                    <div class="menu-dot"></div>
-                </div>
-                <div class="menu-row">
-                    <div class="menu-dot"></div>
-                    <div class="menu-dot"></div>
-                </div>
-            </button>
-            <button class="close-btn ${showCloseBtn ? '' : 'hidden'}" id="closeBtn" title="${t('close')}">x</button>
-        </div>
+        ${buildHeader()}
+        ${buildSettingsPanel()}
+        ${buildThemePicker()}
+        <div class="overlay-spacer"></div>
+        ${buildFooter()}
+        ${buildProgressRow()}
+        ${buildControls()}
     </div>
-
-    <!-- Settings Panel - Full Screen -->
-    <div class="settings-panel" id="settingsPanel">
-        <div class="settings-header">
-            <span class="settings-title" id="settingsTitle">${t('settings')}</span>
-            <button class="settings-close" id="settingsClose" title="${t('close')}">x</button>
-        </div>
-        <div class="settings-content">
-            <button class="theme-btn" id="openThemePicker" title="${t('chooseTheme')}">
-                <div class="theme-btn-info">
-                    <div class="theme-btn-label" id="themeBtnLabel">${t('theme')}</div>
-                    <div class="theme-btn-name" id="currentThemeName">${THEMES[currentTheme].name}</div>
-                </div>
-                <span class="theme-btn-arrow">></span>
-            </button>
-            
-            <div class="menu-section-title" id="generalTitle">${t('general')}</div>
-            <div class="menu-item menu-item-select" id="languageItem">
-                <span class="menu-item-label" id="languageLabel">${t('language')}</span>
-                <select class="menu-select" id="languageSelect">
-                    ${generateLanguageOptions()}
-                </select>
-            </div>
-
-            <div class="menu-divider"></div>
-
-            <div class="menu-section-title" id="appearanceTitle">${t('appearance')}</div>
-            <div class="menu-item" id="toggleModeItem">
-                <span class="menu-item-label" id="toggleModeLabel">${t('lightMode')}</span>
-                <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode"></div>
-            </div>
-            <div class="menu-item" id="idleDelayItem">
-                <span class="menu-item-label" id="idleDelayLabel">${t('idleFade')}</span>
-                <div class="idle-row">
-                    <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}">
-                    <span class="value-display" id="idleDelayValue">${(idleDelayMs / 1000).toFixed(1)}s</span>
-                </div>
-            </div>
-            
-            <div class="menu-section-title" id="displayTitle">${t('display')}</div>
-            <div class="menu-item" id="toggleLyricsItem">
-                <span class="menu-item-label" id="toggleLyricsLabel">${t('showLyrics')}</span>
-                <div class="menu-toggle ${showLyrics ? 'on' : ''}" id="toggleLyrics"></div>
-            </div>
-            <div class="menu-item" id="toggleCenterItem">
-                <span class="menu-item-label" id="toggleCenterLabel">${t('centerLyrics')}</span>
-                <div class="menu-toggle ${centerLyrics ? 'on' : ''}" id="toggleCenter"></div>
-            </div>
-            <div class="menu-item" id="toggleShuffleItem">
-                <span class="menu-item-label" id="toggleShuffleLabel">${t('shuffleButton')}</span>
-                <div class="menu-toggle ${showShuffleBtn ? 'on' : ''}" id="toggleShuffle"></div>
-            </div>
-            <div class="menu-item" id="toggleRepeatItem">
-                <span class="menu-item-label" id="toggleRepeatLabel">${t('repeatButton')}</span>
-                <div class="menu-toggle ${showRepeatBtn ? 'on' : ''}" id="toggleRepeat"></div>
-            </div>
-            <div class="menu-item" id="toggleLikeItem">
-                <span class="menu-item-label" id="toggleLikeLabel">${t('likeButton')}</span>
-                <div class="menu-toggle ${showLikeBtn ? 'on' : ''}" id="toggleLike"></div>
-            </div>
-            <div class="menu-item" id="toggleCloseItem">
-                <span class="menu-item-label" id="toggleCloseLabel">${t('closeButton')}</span>
-                <div class="menu-toggle ${showCloseBtn ? 'on' : ''}" id="toggleClose"></div>
-            </div>
-            <div class="menu-item" id="toggleFontItem">
-                <span class="menu-item-label" id="toggleFontLabel">${t('fontSizeSlider')}</span>
-                <div class="menu-toggle ${showFontSlider ? 'on' : ''}" id="toggleFont"></div>
-            </div>
-            <div class="menu-item" id="toggleVolItem">
-                <span class="menu-item-label" id="toggleVolLabel">${t('volumeSlider')}</span>
-                <div class="menu-toggle ${showVolumeSlider ? 'on' : ''}" id="toggleVol"></div>
-            </div>
-            <div class="menu-item" id="toggleProgressItem">
-                <span class="menu-item-label" id="toggleProgressLabel">${t('progressBar')}</span>
-                <div class="menu-toggle ${showProgressBar ? 'on' : ''}" id="toggleProgress"></div>
-            </div>
-            <div class="menu-item" id="toggleControlsItem">
-                <span class="menu-item-label" id="toggleControlsLabel">${t('controlsBar')}</span>
-                <div class="menu-toggle ${showControls ? 'on' : ''}" id="toggleControls"></div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Theme Picker Panel -->
-    <div class="theme-picker" id="themePicker">
-        <div class="theme-picker-header">
-            <button class="theme-picker-back" id="themePickerBack" title="${t('back')}"><</button>
-            <span class="theme-picker-title" id="themePickerTitle">${t('chooseTheme')}</span>
-        </div>
-        <div class="theme-grid" id="themeGrid">
-            ${generateThemeMenuItems()}
-        </div>
-    </div>
-
-    <div class="overlay-spacer"></div>
-
-    <div class="footer" id="footer">
-        <div class="footer-row ${showFontSlider ? '' : 'collapsed'}" id="fontRow">
-            <span class="control-label" id="fontSizeLabel">${t('sizeLabel')}</span>
-            <input type="range" class="slider" id="fontSlider" min="${CONFIG.minFontSize}" max="${CONFIG.maxFontSize}" value="${fontSize}">
-            <span class="value-display" id="fontValue">${fontSize}px</span>
-        </div>
-        <div class="footer-row ${showVolumeSlider ? '' : 'collapsed'}" id="volumeRow">
-            <div id="volumeIconWrap">
-                ${getVolumeIconSvg(currentVolume)}
-            </div>
-            <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="${currentVolume}">
-            <span class="value-display" id="volumePercent">${currentVolume}%</span>
-        </div>
-    </div>
-
-    <div class="progress-row ${showProgressBar ? '' : 'hidden'}" id="progressRow">
-        <span class="progress-time" id="elapsedTime">0:00</span>
-        <div class="progress-bar" id="progressBar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <span class="progress-time" id="totalTime">0:00</span>
-    </div>
-
-    <div class="controls ${showControls ? '' : 'hidden'}">
-        <div class="controls-group side left"></div>
-        <div class="controls-group center">
-            <button class="ctrl-btn ${showShuffleBtn ? '' : 'hidden'}" id="shuffleBtn" title="${t('shuffle')}">
-                <svg viewBox="0 0 16 16" id="shuffleIcon"><path d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06l2.306-2.306a.75.75 0 0 0 0-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5z"/><path d="m7.5 10.723.98-1.167 1.796 2.14a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.306 2.306a.75.75 0 0 1 0 1.06l-2.306 2.306a.75.75 0 1 1-1.06-1.06L14.109 14H12.16a3.75 3.75 0 0 1-2.873-1.34l-1.787-2.14z"/></svg>
-            </button>
-            <button class="ctrl-btn" id="prevBtn" title="${t('previous')}">
-                <svg viewBox="0 0 16 16"><path d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>
-            </button>
-            <button class="ctrl-btn play-btn" id="playBtn" title="${t('playPause')}">
-                <svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/></svg>
-            </button>
-            <button class="ctrl-btn" id="nextBtn" title="${t('next')}">
-                <svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>
-            </button>
-            <button class="ctrl-btn ${showRepeatBtn ? '' : 'hidden'}" id="repeatBtn" title="${t('repeatOff')}">
-                <svg viewBox="0 0 16 16" id="repeatIcon"><path d="M11.17 3.5H5.5A2.5 2.5 0 0 0 3 6v1.25a.75.75 0 0 1-1.5 0V6A4 4 0 0 1 5.5 2h5.67l-.9-.9a.75.75 0 1 1 1.06-1.06l2.18 2.18a.75.75 0 0 1 0 1.06l-2.18 2.18a.75.75 0 1 1-1.06-1.06l.9-.9zM4.83 12.5H10.5A2.5 2.5 0 0 0 13 10V8.75a.75.75 0 0 1 1.5 0V10a4 4 0 0 1-4 4H4.83l.9.9a.75.75 0 1 1-1.06 1.06L2.5 13.78a.75.75 0 0 1 0-1.06l2.18-2.18a.75.75 0 1 1 1.06 1.06l-.9.9z"/></svg>
-            </button>
-        </div>
-        <div class="controls-group side right">
-            <button class="ctrl-btn ${showLikeBtn ? '' : 'hidden'}" id="likeBtn" title="${t('saveLiked')}">
-                <svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>
-            </button>
-        </div>
-    </div>
-</div>
 </body>
-</html>`);
+</html>`;
+
+        // Build the HTML
+        const Templates = {
+            header: buildHeader,
+            settingsPanel: buildSettingsPanel,
+            themePicker: buildThemePicker,
+            footer: buildFooter,
+            progressRow: buildProgressRow,
+            controls: buildControls,
+            html: buildHtml,
+        };
+
+        doc.write(Templates.html());
         doc.close();
 
         // Get elements
-        const menuBtn = doc.getElementById('menuBtn');
-        const settingsPanel = doc.getElementById('settingsPanel');
-        const settingsClose = doc.getElementById('settingsClose');
-        const settingsTitle = doc.getElementById('settingsTitle');
-        const themeBtnLabel = doc.getElementById('themeBtnLabel');
-        const generalTitle = doc.getElementById('generalTitle');
-        const languageLabel = doc.getElementById('languageLabel');
-        const languageSelect = doc.getElementById('languageSelect');
-        const appearanceTitle = doc.getElementById('appearanceTitle');
-        const displayTitle = doc.getElementById('displayTitle');
-        const toggleModeLabel = doc.getElementById('toggleModeLabel');
-        const idleDelayLabel = doc.getElementById('idleDelayLabel');
-        const toggleLyricsLabel = doc.getElementById('toggleLyricsLabel');
-        const toggleCenterLabel = doc.getElementById('toggleCenterLabel');
-        const toggleProgressLabel = doc.getElementById('toggleProgressLabel');
-        const toggleControlsLabel = doc.getElementById('toggleControlsLabel');
-        const toggleShuffleLabel = doc.getElementById('toggleShuffleLabel');
-        const toggleRepeatLabel = doc.getElementById('toggleRepeatLabel');
-        const toggleLikeLabel = doc.getElementById('toggleLikeLabel');
-        const toggleCloseLabel = doc.getElementById('toggleCloseLabel');
-        const toggleFontLabel = doc.getElementById('toggleFontLabel');
-        const toggleVolLabel = doc.getElementById('toggleVolLabel');
-        const prevBtn = doc.getElementById('prevBtn');
-        const playBtn = doc.getElementById('playBtn');
-        const nextBtn = doc.getElementById('nextBtn');
-        const shuffleBtn = doc.getElementById('shuffleBtn');
-        const repeatBtn = doc.getElementById('repeatBtn');
-        const likeBtn = doc.getElementById('likeBtn');
-        const fontSlider = doc.getElementById('fontSlider');
-        const fontValue = doc.getElementById('fontValue');
-        const fontRow = doc.getElementById('fontRow');
-        const volumeRow = doc.getElementById('volumeRow');
-        const volumeSlider = doc.getElementById('volumeSlider');
-        const volumePercent = doc.getElementById('volumePercent');
-        const volumeIconWrap = doc.getElementById('volumeIconWrap');
-        const progressRow = doc.getElementById('progressRow');
-        const progressBar = doc.getElementById('progressBar');
-        const progressFill = doc.getElementById('progressFill');
-        const elapsedTime = doc.getElementById('elapsedTime');
-        const totalTime = doc.getElementById('totalTime');
-        const lyricsContainer = doc.getElementById('lyricsContainer');
-        const toggleLyricsItem = doc.getElementById('toggleLyricsItem');
-        const toggleLyrics = doc.getElementById('toggleLyrics');
-        const toggleCenterItem = doc.getElementById('toggleCenterItem');
-        const toggleCenter = doc.getElementById('toggleCenter');
-        const toggleProgressItem = doc.getElementById('toggleProgressItem');
-        const toggleProgress = doc.getElementById('toggleProgress');
-        const toggleControlsItem = doc.getElementById('toggleControlsItem');
-        const toggleControls = doc.getElementById('toggleControls');
-        const toggleModeItem = doc.getElementById('toggleModeItem');
-        const toggleMode = doc.getElementById('toggleMode');
-        const idleDelaySlider = doc.getElementById('idleDelaySlider');
-        const idleDelayValue = doc.getElementById('idleDelayValue');
-        const toggleShuffleItem = doc.getElementById('toggleShuffleItem');
-        const toggleShuffle = doc.getElementById('toggleShuffle');
-        const toggleRepeatItem = doc.getElementById('toggleRepeatItem');
-        const toggleRepeat = doc.getElementById('toggleRepeat');
-        const toggleLikeItem = doc.getElementById('toggleLikeItem');
-        const toggleLike = doc.getElementById('toggleLike');
-        const toggleCloseItem = doc.getElementById('toggleCloseItem');
-        const toggleClose = doc.getElementById('toggleClose');
-        const toggleFontItem = doc.getElementById('toggleFontItem');
-        const toggleFont = doc.getElementById('toggleFont');
-        const toggleVolItem = doc.getElementById('toggleVolItem');
-        const toggleVol = doc.getElementById('toggleVol');
-        const themeStyles = doc.getElementById('themeStyles');
-        const openThemePickerBtn = doc.getElementById('openThemePicker');
-        const currentThemeName = doc.getElementById('currentThemeName');
-        const themePicker = doc.getElementById('themePicker');
-        const themePickerBack = doc.getElementById('themePickerBack');
-        const themePickerTitle = doc.getElementById('themePickerTitle');
-        const themeGrid = doc.getElementById('themeGrid');
-        const closeBtn = doc.getElementById('closeBtn');
-        const resizeHandle = doc.getElementById('resizeHandle');
-        const dragHeader = doc.getElementById('dragHeader');
-        const fontSizeLabel = doc.getElementById('fontSizeLabel');
-        const chrome = doc.getElementById('chrome');
+        const ui = {
+            doc,
+            ...withIds(doc, [
+                'menuBtn',
+                'settingsPanel',
+                'settingsClose',
+                'settingsTitle',
+                'themeBtnLabel',
+                'generalTitle',
+                'languageLabel',
+                'languageSelect',
+                'appearanceTitle',
+                'displayTitle',
+                'toggleModeLabel',
+                'idleDelayLabel',
+                'toggleLyricsLabel',
+                'toggleCenterLabel',
+                'toggleProgressLabel',
+                'toggleControlsLabel',
+                'toggleShuffleLabel',
+                'toggleRepeatLabel',
+                'toggleLikeLabel',
+                'toggleCloseLabel',
+                'toggleFontLabel',
+                'toggleVolLabel',
+                'prevBtn',
+                'playBtn',
+                'playIcon',
+                'nextBtn',
+                'shuffleBtn',
+                'repeatBtn',
+                'likeBtn',
+                'fontSlider',
+                'fontValue',
+                'fontRow',
+                'volumeRow',
+                'volumeSlider',
+                'volumePercent',
+                'volumeIconWrap',
+                'progressRow',
+                'progressBar',
+                'progressFill',
+                'elapsedTime',
+                'totalTime',
+                'lyricsContainer',
+                'toggleLyricsItem',
+                'toggleLyrics',
+                'toggleCenterItem',
+                'toggleCenter',
+                'toggleProgressItem',
+                'toggleProgress',
+                'toggleControlsItem',
+                'toggleControls',
+                'toggleModeItem',
+                'toggleMode',
+                'idleDelaySlider',
+                'idleDelayValue',
+                'toggleShuffleItem',
+                'toggleShuffle',
+                'toggleRepeatItem',
+                'toggleRepeat',
+                'toggleLikeItem',
+                'toggleLike',
+                'toggleCloseItem',
+                'toggleClose',
+                'toggleFontItem',
+                'toggleFont',
+                'toggleVolItem',
+                'toggleVol',
+                'themeStyles',
+                'openThemePicker',
+                'currentThemeName',
+                'themePicker',
+                'themePickerBack',
+                'themePickerTitle',
+                'themeGrid',
+                'closeBtn',
+                'resizeHandle',
+                'dragHeader',
+                'fontSizeLabel',
+                'chrome',
+                'trackLine',
+            ]),
+            controls: doc.querySelector('.controls'),
+            win,
+        };
+
+        pipUi = ui;
+
+        const {
+            menuBtn,
+            settingsPanel,
+            settingsClose,
+            settingsTitle,
+            themeBtnLabel,
+            generalTitle,
+            languageLabel,
+            languageSelect,
+            appearanceTitle,
+            displayTitle,
+            toggleModeLabel,
+            idleDelayLabel,
+            toggleLyricsLabel,
+            toggleCenterLabel,
+            toggleProgressLabel,
+            toggleControlsLabel,
+            toggleShuffleLabel,
+            toggleRepeatLabel,
+            toggleLikeLabel,
+            toggleCloseLabel,
+            toggleFontLabel,
+            toggleVolLabel,
+            prevBtn,
+            playBtn,
+            nextBtn,
+            shuffleBtn,
+            repeatBtn,
+            likeBtn,
+            fontSlider,
+            fontValue,
+            fontRow,
+            volumeRow,
+            volumeSlider,
+            volumePercent,
+            volumeIconWrap,
+            progressRow,
+            progressBar,
+            progressFill,
+            elapsedTime,
+            totalTime,
+            lyricsContainer,
+            toggleLyricsItem,
+            toggleLyrics,
+            toggleCenterItem,
+            toggleCenter,
+            toggleProgressItem,
+            toggleProgress,
+            toggleControlsItem,
+            toggleControls,
+            toggleModeItem,
+            toggleMode,
+            idleDelaySlider,
+            idleDelayValue,
+            toggleShuffleItem,
+            toggleShuffle,
+            toggleRepeatItem,
+            toggleRepeat,
+            toggleLikeItem,
+            toggleLike,
+            toggleCloseItem,
+            toggleClose,
+            toggleFontItem,
+            toggleFont,
+            toggleVolItem,
+            toggleVol,
+            themeStyles,
+            openThemePicker: openThemePickerBtn,
+            currentThemeName,
+            themePicker,
+            themePickerBack,
+            themePickerTitle,
+            themeGrid,
+            closeBtn,
+            resizeHandle,
+            dragHeader,
+            fontSizeLabel,
+            chrome,
+            trackLine,
+        } = ui;
         let idleTimer = null;
-
-        // Close miniplayer
-        closeBtn.onclick = () => {
-            win.close();
-        };
-
-        // Settings panel toggle
-        menuBtn.onclick = (e) => {
-            e.stopPropagation();
-            settingsPanel.classList.add('open');
-            setChromeHidden(false);
-        };
-
-        // Close settings panel
-        settingsClose.onclick = () => {
-            settingsPanel.classList.remove('open');
-        };
-
-        // Open theme picker panel
-        openThemePickerBtn.onclick = () => {
-            themePicker.classList.add('open');
-            setChromeHidden(false);
-        };
-
-        // Close theme picker (back to settings)
-        themePickerBack.onclick = () => {
-            themePicker.classList.remove('open');
-        };
 
         function renderLanguageOptions() {
             if (!languageSelect) return;
@@ -2338,64 +2513,60 @@
             if (doc?.documentElement) doc.documentElement.lang = language;
             doc.title = t('appTitle');
 
-            if (settingsTitle) settingsTitle.textContent = t('settings');
-            if (themeBtnLabel) themeBtnLabel.textContent = t('theme');
-            if (generalTitle) generalTitle.textContent = t('general');
-            if (languageLabel) languageLabel.textContent = t('language');
-            if (appearanceTitle) appearanceTitle.textContent = t('appearance');
-            if (displayTitle) displayTitle.textContent = t('display');
-            if (toggleModeLabel) toggleModeLabel.textContent = t('lightMode');
-            if (idleDelayLabel) idleDelayLabel.textContent = t('idleFade');
-            if (toggleLyricsLabel) toggleLyricsLabel.textContent = t('showLyrics');
-            if (toggleCenterLabel) toggleCenterLabel.textContent = t('centerLyrics');
-            if (toggleProgressLabel) toggleProgressLabel.textContent = t('progressBar');
-            if (toggleControlsLabel) toggleControlsLabel.textContent = t('controlsBar');
-            if (toggleShuffleLabel) toggleShuffleLabel.textContent = t('shuffleButton');
-            if (toggleRepeatLabel) toggleRepeatLabel.textContent = t('repeatButton');
-            if (toggleLikeLabel) toggleLikeLabel.textContent = t('likeButton');
-            if (toggleCloseLabel) toggleCloseLabel.textContent = t('closeButton');
-            if (toggleFontLabel) toggleFontLabel.textContent = t('fontSizeSlider');
-            if (toggleVolLabel) toggleVolLabel.textContent = t('volumeSlider');
-            if (themePickerTitle) themePickerTitle.textContent = t('chooseTheme');
-            if (fontSizeLabel) fontSizeLabel.textContent = t('sizeLabel');
+            const textBindings = [
+                [settingsTitle, 'settings'],
+                [themeBtnLabel, 'theme'],
+                [generalTitle, 'general'],
+                [languageLabel, 'language'],
+                [appearanceTitle, 'appearance'],
+                [displayTitle, 'display'],
+                [toggleModeLabel, 'lightMode'],
+                [idleDelayLabel, 'idleFade'],
+                [toggleLyricsLabel, 'showLyrics'],
+                [toggleCenterLabel, 'centerLyrics'],
+                [toggleProgressLabel, 'progressBar'],
+                [toggleControlsLabel, 'controlsBar'],
+                [toggleShuffleLabel, 'shuffleButton'],
+                [toggleRepeatLabel, 'repeatButton'],
+                [toggleLikeLabel, 'likeButton'],
+                [toggleCloseLabel, 'closeButton'],
+                [toggleFontLabel, 'fontSizeSlider'],
+                [toggleVolLabel, 'volumeSlider'],
+                [themePickerTitle, 'chooseTheme'],
+                [fontSizeLabel, 'sizeLabel'],
+            ];
 
-            if (menuBtn) menuBtn.title = t('settings');
-            if (settingsClose) settingsClose.title = t('close');
-            if (closeBtn) closeBtn.title = t('close');
-            if (resizeHandle) resizeHandle.title = t('dragResize');
-            if (dragHeader) dragHeader.title = t('dragMove');
-            if (openThemePickerBtn) openThemePickerBtn.title = t('chooseTheme');
-            if (themePickerBack) themePickerBack.title = t('back');
+            textBindings.forEach(([el, key]) => {
+                if (el) el.textContent = t(key);
+            });
 
-            if (shuffleBtn) shuffleBtn.title = t('shuffle');
-            if (prevBtn) prevBtn.title = t('previous');
-            if (playBtn) playBtn.title = t('playPause');
-            if (nextBtn) nextBtn.title = t('next');
-            if (likeBtn) likeBtn.title = t('saveLiked');
+            const titleBindings = [
+                [menuBtn, 'settings'],
+                [settingsClose, 'close'],
+                [closeBtn, 'close'],
+                [resizeHandle, 'dragResize'],
+                [dragHeader, 'dragMove'],
+                [openThemePickerBtn, 'chooseTheme'],
+                [themePickerBack, 'back'],
+                [shuffleBtn, 'shuffle'],
+                [prevBtn, 'previous'],
+                [playBtn, 'playPause'],
+                [nextBtn, 'next'],
+                [likeBtn, 'saveLiked'],
+            ];
 
-            const trackLineEl = doc.getElementById('trackLine');
-            if (trackLineEl?.dataset?.loading === 'true') {
-                trackLineEl.textContent = t('loading');
+            titleBindings.forEach(([el, key]) => {
+                if (el) el.title = t(key);
+            });
+
+            if (trackLine?.dataset?.loading === 'true') {
+                trackLine.textContent = t('loading');
             }
 
             renderLanguageOptions();
-            applyRepeatUi(resolveRepeatMode());
+            renderRepeatButton(repeatBtn, resolveRepeatMode());
             refreshLyricsStatus();
         }
-
-        if (languageSelect) {
-            languageSelect.onchange = (e) => {
-                const selected = e.target.value;
-                if (selected !== 'auto' && !I18N[selected]) return;
-                applyLanguageSetting(selected);
-                try {
-                    localStorage.setItem('lyrics-overlay-language', languageSetting);
-                } catch (err) {}
-                applyTranslations();
-            };
-        }
-
-        applyTranslations();
 
         let chromeFadeAnim = null;
         let chromeHidden = false;
@@ -2435,155 +2606,254 @@
             resetIdleTimer();
         }
 
-        doc.addEventListener('mousemove', handleActivity);
-        doc.addEventListener('mousedown', handleActivity);
-        doc.addEventListener('keydown', handleActivity);
-        doc.addEventListener('wheel', handleActivity);
-        doc.addEventListener('touchstart', handleActivity);
-
-        // Theme selection
-        themeGrid.onclick = (e) => {
-            const themeItem = e.target.closest('.theme-item');
-            if (themeItem) {
-                const newTheme = themeItem.dataset.theme;
-                if (newTheme && THEMES[newTheme]) {
-                    currentTheme = newTheme;
-                    localStorage.setItem('lyrics-overlay-theme', currentTheme);
-                    
-                    // Update styles
-                    themeStyles.textContent = generateStyles(currentTheme, colorMode);
-                    
-                    // Update theme button
-                    currentThemeName.textContent = THEMES[currentTheme].name;
-                    
-                    // Update active state
-                    doc.querySelectorAll('.theme-item').forEach(item => {
-                        item.classList.toggle('active', item.dataset.theme === currentTheme);
-                    });
-                    
-                    // Close picker after selection
-                    themePicker.classList.remove('open');
-                }
-            }
-        };
-
-
-        // Toggle handlers
-        toggleLyricsItem.onclick = () => {
-            showLyrics = !showLyrics;
-            toggleLyrics.classList.toggle('on', showLyrics);
-            lyricsContainer.classList.toggle('collapsed', !showLyrics);
-            localStorage.setItem('lyrics-overlay-showlyrics', showLyrics);
-        };
-
-        toggleCenterItem.onclick = () => {
-            centerLyrics = !centerLyrics;
-            toggleCenter.classList.toggle('on', centerLyrics);
-            lyricsContainer.classList.toggle('centered', centerLyrics);
-            localStorage.setItem('lyrics-overlay-centerlyrics', centerLyrics);
-        };
-
-        toggleProgressItem.onclick = () => {
-            showProgressBar = !showProgressBar;
-            toggleProgress.classList.toggle('on', showProgressBar);
-            progressRow.classList.toggle('hidden', !showProgressBar);
-            localStorage.setItem('lyrics-overlay-showprogress', showProgressBar);
-        };
-
-        toggleControlsItem.onclick = () => {
-            showControls = !showControls;
-            toggleControls.classList.toggle('on', showControls);
-            const controlsEl = doc.querySelector('.controls');
-            if (controlsEl) controlsEl.classList.toggle('hidden', !showControls);
-            localStorage.setItem('lyrics-overlay-showcontrols', showControls);
-        };
-
-        toggleModeItem.onclick = () => {
-            colorMode = colorMode === 'light' ? 'dark' : 'light';
-            toggleMode.classList.toggle('on', colorMode === 'light');
-            localStorage.setItem('lyrics-overlay-colormode', colorMode);
-            themeStyles.textContent = generateStyles(currentTheme, colorMode);
-            if (doc?.body) doc.body.dataset.colorMode = colorMode;
-        };
-
-        idleDelaySlider.oninput = (e) => {
-            idleDelayMs = parseInt(e.target.value, 10);
-            if (Number.isNaN(idleDelayMs)) return;
-            idleDelayValue.textContent = `${(idleDelayMs / 1000).toFixed(1)}s`;
-            localStorage.setItem('lyrics-overlay-idledelay', idleDelayMs);
-            resetIdleTimer();
-        };
-
-        toggleShuffleItem.onclick = () => {
-            showShuffleBtn = !showShuffleBtn;
-            toggleShuffle.classList.toggle('on', showShuffleBtn);
-            shuffleBtn.classList.toggle('hidden', !showShuffleBtn);
-            localStorage.setItem('lyrics-overlay-showshuffle', showShuffleBtn);
-        };
-
-        toggleRepeatItem.onclick = () => {
-            showRepeatBtn = !showRepeatBtn;
-            toggleRepeat.classList.toggle('on', showRepeatBtn);
-            repeatBtn.classList.toggle('hidden', !showRepeatBtn);
-            localStorage.setItem('lyrics-overlay-showrepeat', showRepeatBtn);
-        };
-
-        toggleLikeItem.onclick = () => {
-            showLikeBtn = !showLikeBtn;
-            toggleLike.classList.toggle('on', showLikeBtn);
-            likeBtn.classList.toggle('hidden', !showLikeBtn);
-            localStorage.setItem('lyrics-overlay-showlike', showLikeBtn);
-        };
-
-        toggleCloseItem.onclick = () => {
-            showCloseBtn = !showCloseBtn;
-            toggleClose.classList.toggle('on', showCloseBtn);
-            closeBtn.classList.toggle('hidden', !showCloseBtn);
-            localStorage.setItem('lyrics-overlay-showclose', showCloseBtn);
-        };
-
-        toggleFontItem.onclick = () => {
-            showFontSlider = !showFontSlider;
-            toggleFont.classList.toggle('on', showFontSlider);
-            fontRow.classList.toggle('collapsed', !showFontSlider);
-            localStorage.setItem('lyrics-overlay-showfont', showFontSlider);
-        };
-
-        toggleVolItem.onclick = () => {
-            showVolumeSlider = !showVolumeSlider;
-            toggleVol.classList.toggle('on', showVolumeSlider);
-            volumeRow.classList.toggle('collapsed', !showVolumeSlider);
-            localStorage.setItem('lyrics-overlay-showvol', showVolumeSlider);
-        };
-
-        // Control handlers
-        prevBtn.onclick = () => Spicetify.Player.back();
-        playBtn.onclick = () => Spicetify.Player.togglePlay();
-        nextBtn.onclick = () => Spicetify.Player.next();
-        shuffleBtn.onclick = () => {
-            Spicetify.Player.toggleShuffle();
-            updateShuffleState();
-        };
-        repeatBtn.onclick = () => {
-            const current = resolveRepeatMode();
-            const next = current === 'off' ? 'context' : current === 'context' ? 'track' : 'off';
-            setRepeatMode(next);
-            pendingRepeatMode = next;
-            pendingRepeatAt = Date.now();
-            applyRepeatUi(next);
-            setTimeout(updateRepeatState, 120);
-        };
-
-        likeBtn.onclick = () => {
-            Spicetify.Player.toggleHeart();
-        };
-
-        // Update shuffle button state
-        function updateShuffleState() {
-            const isShuffled = Spicetify.Player.getShuffle();
-            shuffleBtn.classList.toggle('shuffle-on', isShuffled);
+        function initI18n() {
+            on(languageSelect, 'change', (e) => {
+                const selected = e.target.value;
+                if (selected !== 'auto' && !I18N[selected]) return;
+                applyLanguageSetting(selected);
+                safeSet(STORAGE_KEYS.language, languageSetting);
+                applyTranslations();
+            });
+            applyTranslations();
         }
-        updateShuffleState();
+
+        function initPanels() {
+            onClick(closeBtn, () => win.close());
+
+            onClick(menuBtn, (e) => {
+                e.stopPropagation();
+                settingsPanel.classList.add('open');
+                setChromeHidden(false);
+            });
+
+            onClick(settingsClose, () => {
+                settingsPanel.classList.remove('open');
+            });
+
+            onClick(openThemePickerBtn, () => {
+                themePicker.classList.add('open');
+                setChromeHidden(false);
+            });
+
+            onClick(themePickerBack, () => {
+                themePicker.classList.remove('open');
+            });
+        }
+
+        function initIdle() {
+            ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart'].forEach((evt) => {
+                doc.addEventListener(evt, handleActivity);
+            });
+        }
+
+        function initThemePicker() {
+            on(themeGrid, 'click', (e) => {
+                const themeItem = e.target.closest('.theme-item');
+                if (themeItem) {
+                    const newTheme = themeItem.dataset.theme;
+                    if (newTheme && THEMES[newTheme]) {
+                        currentTheme = newTheme;
+                        safeSet(STORAGE_KEYS.theme, currentTheme);
+
+                        // Update styles
+                        themeStyles.textContent = generateStyles(currentTheme, colorMode);
+
+                        // Update theme button
+                        currentThemeName.textContent = THEMES[currentTheme].name;
+
+                        // Update active state
+                        doc.querySelectorAll('.theme-item').forEach(item => {
+                            item.classList.toggle('active', item.dataset.theme === currentTheme);
+                        });
+
+                        // Close picker after selection
+                        themePicker.classList.remove('open');
+                    }
+                }
+            });
+        }
+
+        function initToggles() {
+            const bindings = [
+                {
+                    item: toggleLyricsItem,
+                    toggle: toggleLyrics,
+                    get: () => showLyrics,
+                    set: (value) => { showLyrics = value; },
+                    apply: (value) => setCollapsed(lyricsContainer, !value),
+                    storageKey: STORAGE_KEYS.showLyrics,
+                },
+                {
+                    item: toggleCenterItem,
+                    toggle: toggleCenter,
+                    get: () => centerLyrics,
+                    set: (value) => { centerLyrics = value; },
+                    apply: (value) => {
+                        if (lyricsContainer) lyricsContainer.classList.toggle('centered', value);
+                    },
+                    storageKey: STORAGE_KEYS.centerLyrics,
+                },
+                {
+                    item: toggleProgressItem,
+                    toggle: toggleProgress,
+                    get: () => showProgressBar,
+                    set: (value) => { showProgressBar = value; },
+                    apply: (value) => setHidden(progressRow, !value),
+                    storageKey: STORAGE_KEYS.showProgress,
+                },
+                {
+                    item: toggleControlsItem,
+                    toggle: toggleControls,
+                    get: () => showControls,
+                    set: (value) => { showControls = value; },
+                    apply: (value) => setHidden(ui.controls, !value),
+                    storageKey: STORAGE_KEYS.showControls,
+                },
+                {
+                    item: toggleShuffleItem,
+                    toggle: toggleShuffle,
+                    get: () => showShuffleBtn,
+                    set: (value) => { showShuffleBtn = value; },
+                    apply: (value) => setHidden(shuffleBtn, !value),
+                    storageKey: STORAGE_KEYS.showShuffle,
+                },
+                {
+                    item: toggleRepeatItem,
+                    toggle: toggleRepeat,
+                    get: () => showRepeatBtn,
+                    set: (value) => { showRepeatBtn = value; },
+                    apply: (value) => setHidden(repeatBtn, !value),
+                    storageKey: STORAGE_KEYS.showRepeat,
+                },
+                {
+                    item: toggleLikeItem,
+                    toggle: toggleLike,
+                    get: () => showLikeBtn,
+                    set: (value) => { showLikeBtn = value; },
+                    apply: (value) => setHidden(likeBtn, !value),
+                    storageKey: STORAGE_KEYS.showLike,
+                },
+                {
+                    item: toggleCloseItem,
+                    toggle: toggleClose,
+                    get: () => showCloseBtn,
+                    set: (value) => { showCloseBtn = value; },
+                    apply: (value) => setHidden(closeBtn, !value),
+                    storageKey: STORAGE_KEYS.showClose,
+                },
+                {
+                    item: toggleFontItem,
+                    toggle: toggleFont,
+                    get: () => showFontSlider,
+                    set: (value) => { showFontSlider = value; },
+                    apply: (value) => setCollapsed(fontRow, !value),
+                    storageKey: STORAGE_KEYS.showFont,
+                },
+                {
+                    item: toggleVolItem,
+                    toggle: toggleVol,
+                    get: () => showVolumeSlider,
+                    set: (value) => { showVolumeSlider = value; },
+                    apply: (value) => setCollapsed(volumeRow, !value),
+                    storageKey: STORAGE_KEYS.showVol,
+                },
+            ];
+
+            bindings.forEach(bindToggle);
+
+            onClick(toggleModeItem, () => {
+                colorMode = colorMode === 'light' ? 'dark' : 'light';
+                setToggleState(toggleMode, colorMode === 'light');
+                safeSet(STORAGE_KEYS.colorMode, colorMode);
+                themeStyles.textContent = generateStyles(currentTheme, colorMode);
+                if (doc?.body) doc.body.dataset.colorMode = colorMode;
+            });
+
+            on(idleDelaySlider, 'input', (e) => {
+                idleDelayMs = parseInt(e.target.value, 10);
+                if (Number.isNaN(idleDelayMs)) return;
+                idleDelayValue.textContent = `${(idleDelayMs / 1000).toFixed(1)}s`;
+                safeSet(STORAGE_KEYS.idleDelay, idleDelayMs);
+                resetIdleTimer();
+            });
+        }
+
+        function initControls() {
+            onClick(prevBtn, () => Spicetify.Player.back());
+            onClick(playBtn, () => Spicetify.Player.togglePlay());
+            onClick(nextBtn, () => Spicetify.Player.next());
+            onClick(shuffleBtn, () => {
+                Spicetify.Player.toggleShuffle();
+                updatePipShuffleState();
+            });
+            onClick(repeatBtn, () => {
+                const current = resolveRepeatMode();
+                const next = current === 'off' ? 'context' : current === 'context' ? 'track' : 'off';
+                setRepeatMode(next);
+                pendingRepeatMode = next;
+                pendingRepeatAt = Date.now();
+                renderRepeatButton(repeatBtn, next);
+                setTimeout(updatePipRepeatState, 120);
+            });
+            onClick(likeBtn, () => {
+                Spicetify.Player.toggleHeart();
+            });
+
+            updatePipShuffleState();
+            updatePipRepeatState();
+            updatePipLikeState();
+        }
+
+        function initSliders() {
+            on(fontSlider, 'input', (e) => {
+                fontSize = parseInt(e.target.value);
+                fontValue.textContent = `${fontSize}px`;
+                safeSet(STORAGE_KEYS.fontSize, fontSize);
+                updatePipFontSize();
+            });
+
+            on(volumeSlider, 'input', (e) => {
+                const vol = parseInt(e.target.value);
+                Spicetify.Player.setVolume(vol / 100);
+                volumePercent.textContent = `${vol}%`;
+                volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
+            });
+
+            onClick(volumeIconWrap, () => {
+                const currentVol = Math.round((Spicetify.Player.getVolume() || 0) * 100);
+                if (currentVol > 0) {
+                    volumeSlider.dataset.prevVolume = currentVol;
+                    Spicetify.Player.setVolume(0);
+                    volumeSlider.value = 0;
+                    volumePercent.textContent = '0%';
+                    volumeIconWrap.innerHTML = getVolumeIconSvg(0);
+                } else {
+                    const prevVol = parseInt(volumeSlider.dataset.prevVolume) || 50;
+                    Spicetify.Player.setVolume(prevVol / 100);
+                    volumeSlider.value = prevVol;
+                    volumePercent.textContent = `${prevVol}%`;
+                    volumeIconWrap.innerHTML = getVolumeIconSvg(prevVol);
+                }
+            });
+
+            onClick(lyricsContainer, (e) => {
+                if (e.target.classList.contains('lyric')) {
+                    const time = e.target.dataset.time;
+                    if (time) Spicetify.Player.seek(parseInt(time));
+                }
+            });
+
+            if (progressBar) {
+                onClick(progressBar, (e) => {
+                    const durationMs = getTrackDurationMs();
+                    if (!durationMs) return;
+                    const rect = progressBar.getBoundingClientRect();
+                    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+                    Spicetify.Player.seek(Math.round(durationMs * ratio));
+                    updatePipProgress();
+                });
+            }
+        }
 
         function setRepeatMode(mode) {
             if (!Spicetify.Player.setRepeat) return;
@@ -2604,100 +2874,31 @@
             Spicetify.Player.setRepeat(mode);
         }
 
-        function updateRepeatState() {
-            const mode = resolveRepeatMode();
-            applyRepeatUi(mode);
-        }
-
-        function applyRepeatUi(mode) {
-            repeatBtn.classList.toggle('repeat-on', mode === 'context');
-            repeatBtn.classList.toggle('repeat-one', mode === 'track');
-            repeatBtn.title = mode === 'track' ? t('repeatOne') : mode === 'context' ? t('repeatAll') : t('repeatOff');
-        }
-        updateRepeatState();
-
-        // Update like icon (filled vs outline)
-        function updateLikeIcon(isLiked) {
-            const likeIcon = doc.getElementById('likeIcon');
-            if (!likeIcon) return;
-            
-            likeBtn.classList.toggle('liked', isLiked);
-            
-            if (isLiked) {
-                // Filled heart
-                likeIcon.innerHTML = '<path d="M15.724 4.22A4.313 4.313 0 0 0 12.192.814a4.269 4.269 0 0 0-3.622 1.13.837.837 0 0 1-1.14 0 4.272 4.272 0 0 0-6.21 5.855l5.916 7.05a1.128 1.128 0 0 0 1.727 0l5.916-7.05a4.228 4.228 0 0 0 .945-3.577z"/>';
-            } else {
-                // Outline heart
-                likeIcon.innerHTML = '<path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/>';
-            }
-        }
-
-        // Check and update like state
-        function updateLikeState() {
-            const isLiked = Spicetify.Player.getHeart();
-            updateLikeIcon(isLiked);
-        }
-        
-        // Initial update
-        updateLikeState();
-
-        // Font size handler
-        fontSlider.oninput = (e) => {
-            fontSize = parseInt(e.target.value);
-            fontValue.textContent = `${fontSize}px`;
-            localStorage.setItem('lyrics-overlay-fontsize', fontSize);
-            updatePipFontSize();
+        const controller = {
+            initI18n,
+            initPanels,
+            initIdle,
+            initThemePicker,
+            initToggles,
+            initControls,
+            initSliders,
+            initAll() {
+                this.initI18n();
+                this.initPanels();
+                this.initIdle();
+                this.initThemePicker();
+                this.initToggles();
+                this.initControls();
+                this.initSliders();
+            },
         };
 
-        // Volume handlers
-        volumeSlider.oninput = (e) => {
-            const vol = parseInt(e.target.value);
-            Spicetify.Player.setVolume(vol / 100);
-            volumePercent.textContent = `${vol}%`;
-            volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
-        };
-
-        // Click volume icon to mute/unmute
-        volumeIconWrap.onclick = () => {
-            const currentVol = Math.round((Spicetify.Player.getVolume() || 0) * 100);
-            if (currentVol > 0) {
-                volumeSlider.dataset.prevVolume = currentVol;
-                Spicetify.Player.setVolume(0);
-                volumeSlider.value = 0;
-                volumePercent.textContent = '0%';
-                volumeIconWrap.innerHTML = getVolumeIconSvg(0);
-            } else {
-                const prevVol = parseInt(volumeSlider.dataset.prevVolume) || 50;
-                Spicetify.Player.setVolume(prevVol / 100);
-                volumeSlider.value = prevVol;
-                volumePercent.textContent = `${prevVol}%`;
-                volumeIconWrap.innerHTML = getVolumeIconSvg(prevVol);
-            }
-        };
-
-        // Lyrics click to seek
-        lyricsContainer.onclick = (e) => {
-            if (e.target.classList.contains('lyric')) {
-                const time = e.target.dataset.time;
-                if (time) Spicetify.Player.seek(parseInt(time));
-            }
-        };
-
-        // Progress bar seek
-        if (progressBar) {
-            progressBar.onclick = (e) => {
-                const durationMs = getTrackDurationMs();
-                if (!durationMs) return;
-                const rect = progressBar.getBoundingClientRect();
-                const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-                Spicetify.Player.seek(Math.round(durationMs * ratio));
-                updatePipProgress();
-            };
-        }
+        controller.initAll();
 
         // Handle window close
         win.addEventListener('pagehide', () => {
             pipWindow = null;
+            pipUi = null;
         });
 
         // Initial update - force load lyrics for current track
@@ -2722,9 +2923,10 @@
 
     // ==================== PIP CONTENT UPDATES ====================
     function updatePipContent() {
-        if (!pipWindow || pipWindow.closed) return;
+        const ui = getPipUi();
+        if (!ui) return;
 
-        const doc = pipWindow.document;
+        const { doc, trackLine } = ui;
         const data = Spicetify.Player.data;
         
         if (!data?.item) return;
@@ -2732,12 +2934,11 @@
         const track = data.item;
 
         // Update track info
-        const trackLineEl = doc.getElementById('trackLine');
-        if (trackLineEl) {
+        if (trackLine) {
             const title = track.name || t('unknown');
             const artist = track.artists?.map(a => a.name).join(', ') || t('unknown');
-            trackLineEl.textContent = `${title} - ${artist}`;
-            trackLineEl.dataset.loading = 'false';
+            trackLine.textContent = `${title} - ${artist}`;
+            trackLine.dataset.loading = 'false';
         }
 
         // Update play button
@@ -2757,22 +2958,24 @@
         }
     }
 
-    function updatePipLikeState() {
-        if (!pipWindow || pipWindow.closed) return;
-        
-        const doc = pipWindow.document;
+    function renderLikeButton(doc, isLiked) {
+        if (!doc) return;
         const likeBtn = doc.getElementById('likeBtn');
         const likeIcon = doc.getElementById('likeIcon');
         if (!likeBtn || !likeIcon) return;
-        
-        const isLiked = Spicetify.Player.getHeart();
-        
+
         likeBtn.classList.toggle('liked', isLiked);
         if (isLiked) {
             likeIcon.innerHTML = '<path d="M15.724 4.22A4.313 4.313 0 0 0 12.192.814a4.269 4.269 0 0 0-3.622 1.13.837.837 0 0 1-1.14 0 4.272 4.272 0 0 0-6.21 5.855l5.916 7.05a1.128 1.128 0 0 0 1.727 0l5.916-7.05a4.228 4.228 0 0 0 .945-3.577z"/>';
         } else {
             likeIcon.innerHTML = '<path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/>';
         }
+    }
+
+    function updatePipLikeState() {
+        const ui = getPipUi();
+        if (!ui) return;
+        renderLikeButton(ui.doc, Spicetify.Player.getHeart());
     }
 
     function getRepeatRawState() {
@@ -2813,103 +3016,82 @@
         return 'off';
     }
 
-    function updatePipShuffleState() {
-        if (!pipWindow || pipWindow.closed) return;
-
-        const doc = pipWindow.document;
-        const shuffleBtn = doc.getElementById('shuffleBtn');
-        if (!shuffleBtn) return;
-
-        const isShuffled = Spicetify.Player.getShuffle();
-        shuffleBtn.classList.toggle('shuffle-on', isShuffled);
-    }
-
-    function updatePipRepeatState() {
-        if (!pipWindow || pipWindow.closed) return;
-
-        const doc = pipWindow.document;
-        const repeatBtn = doc.getElementById('repeatBtn');
+    function renderRepeatButton(repeatBtn, mode) {
         if (!repeatBtn) return;
-
-        const mode = resolveRepeatMode();
         repeatBtn.classList.toggle('repeat-on', mode === 'context');
         repeatBtn.classList.toggle('repeat-one', mode === 'track');
         repeatBtn.title = mode === 'track' ? t('repeatOne') : mode === 'context' ? t('repeatAll') : t('repeatOff');
     }
 
-    function updatePipPlayButton() {
-        if (!pipWindow || pipWindow.closed) return;
+    function updatePipShuffleState() {
+        const ui = getPipUi();
+        if (!ui || !ui.shuffleBtn) return;
+        ui.shuffleBtn.classList.toggle('shuffle-on', Spicetify.Player.getShuffle());
+    }
 
-        const playIcon = pipWindow.document.getElementById('playIcon');
-        if (!playIcon) return;
+    function updatePipRepeatState() {
+        const ui = getPipUi();
+        if (!ui || !ui.repeatBtn) return;
+        renderRepeatButton(ui.repeatBtn, resolveRepeatMode());
+    }
+
+    function updatePipPlayButton() {
+        const ui = getPipUi();
+        if (!ui || !ui.playIcon) return;
 
         const isPlaying = Spicetify.Player.isPlaying();
-        playIcon.innerHTML = isPlaying
+        ui.playIcon.innerHTML = isPlaying
             ? '<path d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7H2.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-2.6z"/>'
             : '<path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/>';
     }
 
     function updatePipVolume() {
-        if (!pipWindow || pipWindow.closed) return;
-
-        const doc = pipWindow.document;
-        const volumeSlider = doc.getElementById('volumeSlider');
-        const volumePercent = doc.getElementById('volumePercent');
-        const volumeIconWrap = doc.getElementById('volumeIconWrap');
-        
-        if (!volumeSlider || !volumePercent || !volumeIconWrap) return;
+        const ui = getPipUi();
+        if (!ui || !ui.volumeSlider || !ui.volumePercent || !ui.volumeIconWrap) return;
 
         // Only update if slider is not being dragged
-        if (doc.activeElement !== volumeSlider) {
+        if (ui.doc.activeElement !== ui.volumeSlider) {
             const vol = Math.round((Spicetify.Player.getVolume() || 0) * 100);
-            volumeSlider.value = vol;
-            volumePercent.textContent = `${vol}%`;
-            volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
+            ui.volumeSlider.value = vol;
+            ui.volumePercent.textContent = `${vol}%`;
+            ui.volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
         }
     }
 
     function updatePipProgress() {
-        if (!pipWindow || pipWindow.closed) return;
-
-        const doc = pipWindow.document;
-        const progressFill = doc.getElementById('progressFill');
-        const elapsedTime = doc.getElementById('elapsedTime');
-        const totalTime = doc.getElementById('totalTime');
-        const progressBar = doc.getElementById('progressBar');
-        if (!progressFill || !elapsedTime || !totalTime || !progressBar) return;
+        const ui = getPipUi();
+        if (!ui || !ui.progressFill || !ui.elapsedTime || !ui.totalTime || !ui.progressBar) return;
 
         const durationMs = getTrackDurationMs();
         const progressMs = Spicetify.Player.getProgress() || 0;
 
         if (!durationMs) {
-            progressFill.style.width = '0%';
-            elapsedTime.textContent = '0:00';
-            totalTime.textContent = '0:00';
+            ui.progressFill.style.width = '0%';
+            ui.elapsedTime.textContent = '0:00';
+            ui.totalTime.textContent = '0:00';
             return;
         }
 
         const ratio = Math.min(1, Math.max(0, progressMs / durationMs));
-        progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
-        elapsedTime.textContent = formatTime(progressMs);
-        totalTime.textContent = formatTime(durationMs);
+        ui.progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
+        ui.elapsedTime.textContent = formatTime(progressMs);
+        ui.totalTime.textContent = formatTime(durationMs);
     }
 
     function setLyricsStatus(status) {
         lyricsStatus = status;
-        if (!pipWindow || pipWindow.closed) return;
-
-        const container = pipWindow.document.getElementById('lyricsContainer');
-        if (!container) return;
+        const ui = getPipUi();
+        if (!ui || !ui.lyricsContainer) return;
 
         if (status === 'loading') {
-            container.innerHTML = '<div class="status-msg"><div class="spinner"></div></div>';
+            ui.lyricsContainer.innerHTML = '<div class="status-msg"><div class="spinner"></div></div>';
             startSpinnerAnimation();
             return;
         }
 
         if (status === 'no-lyrics') {
             stopSpinnerAnimation();
-            container.innerHTML = `
+            ui.lyricsContainer.innerHTML = `
                 <div class="status-msg">
                     <div class="icon">!</div>
                     <div class="text">${t('noLyrics')}</div>
@@ -2921,7 +3103,7 @@
 
         if (status === 'instrumental') {
             stopSpinnerAnimation();
-            container.innerHTML = `
+            ui.lyricsContainer.innerHTML = `
                 <div class="status-msg">
                     <div class="icon">i</div>
                     <div class="text">${t('instrumental')}</div>
@@ -2937,7 +3119,8 @@
 
     function startSpinnerAnimation() {
         if (spinnerActive) return;
-        if (!pipWindow || pipWindow.closed) return;
+        const ui = getPipUi();
+        if (!ui) return;
         spinnerActive = true;
         spinnerAngle = 0;
 
@@ -2946,8 +3129,7 @@
                 spinnerAnimId = null;
                 return;
             }
-            const doc = pipWindow.document;
-            const spinner = doc.querySelector('.spinner');
+            const spinner = ui.doc.querySelector('.spinner');
             if (!spinner || lyricsStatus !== 'loading') {
                 spinnerAnimId = null;
                 spinnerActive = false;
@@ -2968,10 +3150,8 @@
     }
 
     async function loadLyrics(uri) {
-        if (!pipWindow || pipWindow.closed) return;
-
-        const container = pipWindow.document.getElementById('lyricsContainer');
-        if (!container) return;
+        const ui = getPipUi();
+        if (!ui || !ui.lyricsContainer) return;
 
         // Show loading
         setLyricsStatus('loading');
@@ -2999,14 +3179,15 @@
 
         lyricsStatus = null;
         stopSpinnerAnimation();
-        container.innerHTML = lyricsHtml;
+        ui.lyricsContainer.innerHTML = lyricsHtml;
         initialScrollPending = true;
     }
 
     function updateCurrentLyric(forceScroll = false) {
-        if (!pipWindow || pipWindow.closed || !currentLyrics?.synced) return;
+        const ui = getPipUi();
+        if (!ui || !currentLyrics?.synced) return;
 
-        const doc = pipWindow.document;
+        const doc = ui.doc;
         const currentTime = Spicetify.Player.getProgress();
         
         // Find active line
@@ -3046,9 +3227,10 @@
     }
 
     function updatePipFontSize() {
-        if (!pipWindow || pipWindow.closed) return;
+        const ui = getPipUi();
+        if (!ui) return;
 
-        const lyrics = pipWindow.document.querySelectorAll('.lyric');
+        const lyrics = ui.doc.querySelectorAll('.lyric');
         lyrics.forEach(el => {
             el.style.fontSize = `${fontSize}px`;
         });

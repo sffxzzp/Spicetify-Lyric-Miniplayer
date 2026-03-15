@@ -8,6 +8,7 @@ A Spicetify extension that creates a **floating Picture-in-Picture lyrics window
 
 - **Floating Window** - Opens lyrics in a separate always-on-top window
 - **Synced Lyrics** - Automatically highlights and scrolls to the current line
+- **Bilingual Highlight** - If NetEase lyrics include translations, Chinese/English lines are shown together and highlighted in sync
 - **Playback Controls** - Previous, Play/Pause, Next, Shuffle, Repeat buttons
 - **Like Button** - Save songs to your Liked Songs directly from the miniplayer
 - **Shuffle Button** - Toggle shuffle mode
@@ -110,6 +111,20 @@ All preferences are saved and persist between sessions.
 ### Lyrics not showing?
 - Some tracks don't have lyrics available on Spotify
 - Lyrics are a Spotify feature (availability varies by region)
+- If Spotify lyrics fail, the extension falls back to external providers (More Lyrics API, LRC.cx, NetEase Official, QQ Music, NetEase, QQ Music (oiapi))
+
+## Lyrics Sources
+
+The extension first tries Spotify's native lyrics endpoints. If those fail, it will automatically query third-party providers:
+
+1. **More Lyrics API** (`https://lyrics.kamiloo13.me/api`)
+2. **LRC.cx API** (`https://api.lrc.cx/api/v1/lyrics`)
+3. **NetEase Official API** (`https://music.163.com/api`)
+4. **QQ Music API** (`https://api.vkeys.cn/v2/music/tencent`)
+5. **NetEase API** (`https://api.vkeys.cn/v2/music/netease`)
+6. **QQ Music API (oiapi.net)** (`https://oiapi.net/api/QQMusicLyric`)
+
+Note: Third-party providers can be slower to respond than Spotify's native lyrics.
 
 ### Window not appearing?
 - Click the music note icon in Spotify's top bar

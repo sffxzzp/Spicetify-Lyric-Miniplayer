@@ -870,6 +870,22 @@
             transform-origin: left center;
         }
 
+        .lyric-translation {
+            display: block;
+            font-size: 0.92em;
+            opacity: 0.78;
+            margin-top: 2px;
+        }
+
+        .lyric.active .lyric-translation {
+            color: var(--accent);
+            opacity: 0.9;
+        }
+
+        .lyric.past .lyric-translation {
+            opacity: var(--lyric-past-opacity);
+        }
+
         .lyric:hover {
             opacity: var(--lyric-hover-opacity);
         }
@@ -1077,6 +1093,349 @@
     }
 
     // ==================== LYRICS FETCHING ====================
+    const FALLBACK_LYRICS_APIS = {
+        lrcCxBase: 'https://api.lrc.cx/api/v1/lyrics',
+        moreLyricsBase: 'https://lyrics.kamiloo13.me/api',
+        vkeysBase: 'https://api.vkeys.cn',
+        neteaseOfficialBase: 'https://music.163.com/api',
+        qq1Base: 'https://oiapi.net/api/QQMusicLyric',
+    };
+
+    function getTrackMetadata() {
+        const item = Spicetify.Player.data?.item;
+        if (!item) return null;
+
+        const title = item.name || '';
+        const artist = item.artists?.map(a => a.name).filter(Boolean).join(', ') || '';
+        const album = item.album?.name || item.album?.title || '';
+        const durationMs = getTrackDurationMs();
+
+        return { title, artist, album, durationMs };
+    }
+
+    function parseLrcLines(lrcText) {
+        if (!lrcText || typeof lrcText !== 'string') return null;
+
+        const lines = [];
+        let hasTime = false;
+        const timeTag = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+        const metaTag = /^\s*\[(ti|ar|al|by|offset):/i;
+
+        for (const rawLine of lrcText.split(/\r?\n/)) {
+            const line = rawLine.trim();
+            if (!line) continue;
+            if (metaTag.test(line)) continue;
+
+            const matches = [...line.matchAll(timeTag)];
+            const text = line.replace(timeTag, '').trim();
+
+            if (matches.length === 0) {
+                if (text) lines.push({ startTime: 0, text });
+                continue;
+            }
+
+            hasTime = true;
+            for (const match of matches) {
+                const min = parseInt(match[1], 10);
+                const sec = parseInt(match[2], 10);
+                const frac = match[3] || '0';
+                let ms = 0;
+                if (frac.length === 1) ms = parseInt(frac, 10) * 100;
+                else if (frac.length === 2) ms = parseInt(frac, 10) * 10;
+                else ms = parseInt(frac.slice(0, 3), 10);
+
+                const startTime = (min * 60 + sec) * 1000 + ms;
+                lines.push({ startTime, text });
+            }
+        }
+
+        const filtered = lines.filter(line => line.text && line.text.trim());
+        if (!filtered.length) return null;
+
+        if (hasTime) {
+            filtered.sort((a, b) => a.startTime - b.startTime);
+        }
+
+        return { lines: filtered, hasTime };
+    }
+
+    function parseLrcToLyrics(lrcText) {
+        const parsed = parseLrcLines(lrcText);
+        if (!parsed?.lines?.length) return null;
+        return {
+            synced: parsed.hasTime,
+            lines: parsed.lines
+        };
+    }
+
+    function mergeBilingualLyrics(baseLyrics, translationLyrics) {
+        if (!baseLyrics?.lines?.length || !translationLyrics?.lines?.length) return baseLyrics;
+        if (!translationLyrics.synced) return baseLyrics;
+
+        const merged = [];
+        const baseLines = baseLyrics.lines.slice().sort((a, b) => a.startTime - b.startTime);
+        const transLines = translationLyrics.lines.slice().sort((a, b) => a.startTime - b.startTime);
+        const toleranceMs = 500;
+
+        let tIndex = 0;
+        for (const line of baseLines) {
+            while (tIndex < transLines.length && transLines[tIndex].startTime < line.startTime - toleranceMs) {
+                tIndex += 1;
+            }
+
+            let translation = '';
+            if (tIndex < transLines.length) {
+                const candidate = transLines[tIndex];
+                if (Math.abs(candidate.startTime - line.startTime) <= toleranceMs) {
+                    translation = candidate.text;
+                    tIndex += 1;
+                }
+            }
+
+            if (translation) merged.push({ ...line, translation });
+            else merged.push(line);
+        }
+
+        return { ...baseLyrics, lines: merged };
+    }
+
+    function mapMoreLyricsResult(data) {
+        if (!data || !Array.isArray(data.lines)) return null;
+
+        const lines = data.lines
+            .map(line => ({
+                startTime: parseInt(line.startTimeMs || 0, 10) || 0,
+                text: line.words || ''
+            }))
+            .filter(line => line.text && line.text.trim());
+
+        if (!lines.length) return null;
+
+        return {
+            synced: data.isSynced === true,
+            lines
+        };
+    }
+
+    async function fetchLrcCxLyrics(meta) {
+        if (!meta || (!meta.title && !meta.artist && !meta.album)) return null;
+
+        const params = new URLSearchParams();
+        if (meta.title) params.set('title', meta.title);
+        if (meta.album) params.set('album', meta.album);
+        if (meta.artist) params.set('artist', meta.artist);
+        const query = params.toString();
+        if (!query) return null;
+
+        try {
+            const advanceUrl = `${FALLBACK_LYRICS_APIS.lrcCxBase}/advance?${query}`;
+            const advanceResp = await fetch(advanceUrl);
+            if (advanceResp.ok) {
+                const data = await advanceResp.json();
+                if (Array.isArray(data)) {
+                    const itemWithLyrics = data.find(item => item?.lyrics && typeof item.lyrics === 'string');
+                    if (itemWithLyrics) {
+                        const parsed = parseLrcToLyrics(itemWithLyrics.lyrics);
+                        if (parsed) return parsed;
+                    }
+                }
+            }
+        } catch (e) {}
+
+        try {
+            const singleUrl = `${FALLBACK_LYRICS_APIS.lrcCxBase}/single?${query}`;
+            const singleResp = await fetch(singleUrl);
+            if (singleResp.ok) {
+                const text = await singleResp.text();
+                const parsed = parseLrcToLyrics(text);
+                if (parsed) return parsed;
+            }
+        } catch (e) {}
+
+        return null;
+    }
+
+    async function fetchMoreLyrics(meta) {
+        if (!meta || (!meta.title && !meta.artist)) return null;
+
+        const params = new URLSearchParams();
+        if (meta.artist) params.set('artist', meta.artist);
+        if (meta.title) params.set('track', meta.title);
+        if (meta.durationMs) params.set('duration', Math.round(meta.durationMs / 1000).toString());
+        if (meta.album) params.set('album', meta.album);
+
+        const query = params.toString();
+        if (!query) return null;
+
+        try {
+            const url = `${FALLBACK_LYRICS_APIS.moreLyricsBase}/get?${query}`;
+            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            return mapMoreLyricsResult(data);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function fetchVkeysQqLyrics(meta) {
+        if (!meta?.title) return null;
+
+        const searchParams = new URLSearchParams();
+        searchParams.set('word', meta.artist ? `${meta.title} ${meta.artist}` : meta.title);
+        searchParams.set('page', '1');
+        searchParams.set('num', '10');
+
+        try {
+            const searchUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/tencent/search/song?${searchParams.toString()}`;
+            const searchResp = await fetch(searchUrl);
+            if (!searchResp.ok) return null;
+            const searchJson = await searchResp.json();
+            const list = Array.isArray(searchJson?.data) ? searchJson.data : [];
+            if (!list.length) return null;
+
+            const pick = list.find(item => item?.mid || item?.id) || list[0];
+            if (!pick) return null;
+
+            const lyricParams = new URLSearchParams();
+            if (pick.mid) lyricParams.set('mid', pick.mid);
+            else if (pick.id) lyricParams.set('id', String(pick.id));
+
+            if (!lyricParams.toString()) return null;
+
+            const lyricUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/tencent/lyric?${lyricParams.toString()}`;
+            const lyricResp = await fetch(lyricUrl);
+            if (!lyricResp.ok) return null;
+            const lyricJson = await lyricResp.json();
+            const lrc = lyricJson?.data?.lrc;
+            return parseLrcToLyrics(lrc);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function fetchVkeysNeteaseLyrics(meta) {
+        if (!meta?.title) return null;
+
+        const searchParams = new URLSearchParams();
+        searchParams.set('word', meta.artist ? `${meta.title} ${meta.artist}` : meta.title);
+        searchParams.set('page', '1');
+        searchParams.set('num', '10');
+
+        try {
+            const searchUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/netease?${searchParams.toString()}`;
+            const searchResp = await fetch(searchUrl);
+            if (!searchResp.ok) return null;
+            const searchJson = await searchResp.json();
+            const id = searchJson?.data?.id;
+            if (!id) return null;
+
+            const lyricUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/netease/lyric?id=${encodeURIComponent(
+                id
+            )}`;
+            const lyricResp = await fetch(lyricUrl);
+            if (!lyricResp.ok) return null;
+            const lyricJson = await lyricResp.json();
+            const lrc = lyricJson?.data?.lrc;
+            return parseLrcToLyrics(lrc);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function fetchNeteaseOfficialLyrics(meta) {
+        if (!meta?.title) return null;
+
+        const keyword = meta.artist ? `${meta.title} ${meta.artist}` : meta.title;
+        const searchParams = new URLSearchParams();
+        searchParams.set('s', keyword);
+        searchParams.set('type', '1');
+        searchParams.set('offset', '0');
+        searchParams.set('limit', '5');
+
+        try {
+            const searchUrl = `${FALLBACK_LYRICS_APIS.neteaseOfficialBase}/search/get?${searchParams.toString()}`;
+            const searchResp = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
+            if (!searchResp.ok) return null;
+            const searchJson = await searchResp.json();
+            const songs = searchJson?.result?.songs;
+            const pick = Array.isArray(songs) ? songs[0] : null;
+            const id = pick?.id;
+            if (!id) return null;
+
+            const lyricUrl = `${FALLBACK_LYRICS_APIS.neteaseOfficialBase}/song/lyric?os=pc&id=${encodeURIComponent(
+                id
+            )}&lv=-1&tv=-1`;
+            const lyricResp = await fetch(lyricUrl, { headers: { 'Accept': 'application/json' } });
+            if (!lyricResp.ok) return null;
+            const lyricJson = await lyricResp.json();
+            const lrc = lyricJson?.lrc?.lyric || lyricJson?.lrc;
+            const tlyric = lyricJson?.tlyric?.lyric || lyricJson?.tlyric;
+            const mainLyrics = parseLrcToLyrics(lrc);
+            const transLyrics = parseLrcToLyrics(tlyric);
+            return mergeBilingualLyrics(mainLyrics, transLyrics);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function extractQq1Lyrics(data) {
+        if (!data) return null;
+        const content = data.conteng || data.content || '';
+        if (typeof content === 'string' && content.trim()) return content;
+        if (typeof data.base64 === 'string' && data.base64.trim()) {
+            try {
+                return atob(data.base64.trim());
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    async function fetchQq1Lyrics(meta) {
+        if (!meta?.title) return null;
+
+        const keyword = meta.artist ? `${meta.title} ${meta.artist}` : meta.title;
+        const searchParams = new URLSearchParams();
+        searchParams.set('keyword', keyword);
+        searchParams.set('page', '1');
+        searchParams.set('limit', '10');
+        searchParams.set('format', 'lrc');
+        searchParams.set('type', 'json');
+        searchParams.set('n', '1');
+
+        try {
+            const searchUrl = `${FALLBACK_LYRICS_APIS.qq1Base}?${searchParams.toString()}`;
+            const searchResp = await fetch(searchUrl);
+            if (!searchResp.ok) return null;
+            const searchJson = await searchResp.json();
+
+            if (Array.isArray(searchJson?.data) && searchJson.data.length) {
+                const pick = searchJson.data[0];
+                const id = pick?.mid || pick?.id;
+                if (!id) return null;
+
+                const lyricParams = new URLSearchParams();
+                lyricParams.set('id', String(id));
+                lyricParams.set('format', 'lrc');
+                lyricParams.set('type', 'json');
+
+                const lyricUrl = `${FALLBACK_LYRICS_APIS.qq1Base}?${lyricParams.toString()}`;
+                const lyricResp = await fetch(lyricUrl);
+                if (!lyricResp.ok) return null;
+                const lyricJson = await lyricResp.json();
+                const lrc = extractQq1Lyrics(lyricJson?.data);
+                return parseLrcToLyrics(lrc);
+            }
+
+            const lrc = extractQq1Lyrics(searchJson?.data);
+            return parseLrcToLyrics(lrc);
+        } catch (e) {
+            return null;
+        }
+    }
+
     async function fetchLyrics(trackUri) {
         try {
             const trackId = trackUri.split(':').pop();
@@ -1128,6 +1487,32 @@
                     };
                 }
             } catch (e) {}
+
+            const meta = getTrackMetadata();
+
+            // Method 4: More Lyrics API
+            const moreLyrics = await fetchMoreLyrics(meta);
+            if (moreLyrics?.lines?.length) return moreLyrics;
+
+            // Method 5: LRC.cx API
+            const lrcCxLyrics = await fetchLrcCxLyrics(meta);
+            if (lrcCxLyrics?.lines?.length) return lrcCxLyrics;
+
+            // Method 6: NetEase Official API
+            const neteaseOfficialLyrics = await fetchNeteaseOfficialLyrics(meta);
+            if (neteaseOfficialLyrics?.lines?.length) return neteaseOfficialLyrics;
+
+            // Method 7: QQ Music (vkeys.cn)
+            const qqLyrics = await fetchVkeysQqLyrics(meta);
+            if (qqLyrics?.lines?.length) return qqLyrics;
+
+            // Method 8: NetEase (vkeys.cn)
+            const neteaseLyrics = await fetchVkeysNeteaseLyrics(meta);
+            if (neteaseLyrics?.lines?.length) return neteaseLyrics;
+
+            // Method 9: QQ Music (oiapi.net)
+            const qq1Lyrics = await fetchQq1Lyrics(meta);
+            if (qq1Lyrics?.lines?.length) return qq1Lyrics;
 
             return null;
         } catch (error) {
@@ -1979,7 +2364,7 @@
         const lyricsHtml = currentLyrics.lines
             .filter(line => line.text && line.text.trim())
             .map((line, idx) => 
-                `<div class="lyric" data-time="${line.startTime}" data-idx="${idx}" style="font-size:${fontSize}px">${escapeHtml(line.text)}</div>`
+                `<div class="lyric" data-time="${line.startTime}" data-idx="${idx}" style="font-size:${fontSize}px">${formatLyricHtml(line)}</div>`
             ).join('');
 
         container.innerHTML = lyricsHtml || `
@@ -2059,6 +2444,13 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function formatLyricHtml(line) {
+        if (!line?.translation) return escapeHtml(line?.text || '');
+        const base = escapeHtml(line.text || '');
+        const trans = escapeHtml(line.translation || '');
+        return `${base}<br><span class="lyric-translation">${trans}</span>`;
     }
 
     function getTrackDurationMs() {

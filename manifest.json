@@ -1,12 +1,13 @@
 [
   {
-    "name": "Lyric Miniplayer",
+    "name": "Lyric Miniplayer (fork)",
     "description": "A floating Picture-in-Picture lyrics window that stays on top of other apps. Features synced lyrics, 12 themes, playback controls, shuffle, like button, volume slider, and customizable display options.",
     "preview": "preview.png",
     "main": "lyrics-overlay.js",
     "readme": "README.md",
     "authors": [
-      { "name": "FO-SS", "url": "https://github.com/FO-SS" }
+      { "name": "FO-SS", "url": "https://github.com/FO-SS" },
+      { "name": "sffxzzp", "url": "https://github.com/sffxzzp" },
     ],
     "tags": ["lyrics", "miniplayer", "pip", "floating", "karaoke", "themes"]
   }

@@ -369,6 +369,7 @@
     let spinnerAnimId = null;
     let spinnerAngle = 0;
     let spinnerActive = false;
+    let initialScrollPending = false;
 
     // Load saved settings
     try {
@@ -2933,9 +2934,10 @@
         lyricsStatus = null;
         stopSpinnerAnimation();
         container.innerHTML = lyricsHtml;
+        initialScrollPending = true;
     }
 
-    function updateCurrentLyric() {
+    function updateCurrentLyric(forceScroll = false) {
         if (!pipWindow || pipWindow.closed || !currentLyrics?.synced) return;
 
         const doc = pipWindow.document;
@@ -2961,14 +2963,20 @@
             
             if (idx === activeIdx) {
                 el.classList.add('active');
-                // Only auto-scroll when playing, allow free scroll when paused
-                if (isPlaying) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
             } else if (idx < activeIdx) {
                 el.classList.add('past');
             }
         });
+
+        const shouldScroll = isPlaying || forceScroll || initialScrollPending;
+        if (shouldScroll && lyrics.length) {
+            const scrollIdx = activeIdx >= 0 ? activeIdx : 0;
+            const target = lyrics[scrollIdx];
+            if (target) {
+                target.scrollIntoView({ behavior: isPlaying ? 'smooth' : 'auto', block: 'center' });
+                initialScrollPending = false;
+            }
+        }
     }
 
     function updatePipFontSize() {

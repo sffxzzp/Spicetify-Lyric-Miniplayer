@@ -250,8 +250,10 @@
             sizeLabel: 'Size',
             loading: 'Loading...',
             language: 'Language',
+            languageAuto: 'Auto',
             languageEnglish: 'English',
             languageChinese: 'Chinese (Simplified)',
+            languageChineseTraditional: 'Chinese (Traditional)',
             dragResize: 'Drag to resize',
             dragMove: 'Drag to move window',
             close: 'Close',
@@ -293,8 +295,10 @@
             sizeLabel: '大小',
             loading: '加载中...',
             language: '语言',
+            languageAuto: '自动',
             languageEnglish: '英语',
             languageChinese: '简体中文',
+            languageChineseTraditional: '繁体中文',
             dragResize: '拖拽调整大小',
             dragMove: '拖拽移动窗口',
             close: '关闭',
@@ -313,31 +317,93 @@
             openFail: '无法打开歌词窗口。',
             unknown: '未知',
         },
+        'zh-TW': {
+            appTitle: '歌詞',
+            settings: '設定',
+            theme: '主題',
+            appearance: '外觀',
+            display: '顯示',
+            general: '一般',
+            lightMode: '淺色模式',
+            idleFade: '閒置淡出',
+            showLyrics: '顯示歌詞',
+            centerLyrics: '置中歌詞',
+            progressBar: '進度條',
+            controlsBar: '控制列',
+            shuffleButton: '隨機播放按鈕',
+            repeatButton: '循環按鈕',
+            likeButton: '喜歡按鈕',
+            closeButton: '關閉按鈕',
+            fontSizeSlider: '字體大小滑桿',
+            volumeSlider: '音量滑桿',
+            chooseTheme: '選擇主題',
+            sizeLabel: '大小',
+            loading: '載入中...',
+            language: '語言',
+            languageAuto: '自動',
+            languageEnglish: '英文',
+            languageChinese: '簡體中文',
+            languageChineseTraditional: '繁體中文',
+            dragResize: '拖曳調整大小',
+            dragMove: '拖曳移動視窗',
+            close: '關閉',
+            shuffle: '隨機播放',
+            previous: '上一首',
+            playPause: '播放/暫停',
+            next: '下一首',
+            repeatOff: '關閉循環',
+            repeatAll: '清單循環',
+            repeatOne: '單曲循環',
+            saveLiked: '儲存到喜歡的歌曲',
+            back: '返回',
+            noLyrics: '暫無歌詞',
+            lyricsNotFound: '未找到該曲目歌詞',
+            instrumental: '純音樂',
+            openFail: '無法打開歌詞視窗。',
+            unknown: '未知',
+        },
     };
 
     const LANGUAGE_OPTIONS = [
+        { value: 'auto', labelKey: 'languageAuto' },
         { value: 'en', labelKey: 'languageEnglish' },
         { value: 'zh', labelKey: 'languageChinese' },
+        { value: 'zh-TW', labelKey: 'languageChineseTraditional' },
     ];
 
     function resolveLanguage(raw) {
         const normalized = (raw || '').toLowerCase();
+        if (normalized === 'zh-tw' || normalized.startsWith('zh-tw')) return 'zh-TW';
+        if (normalized === 'zh-hant' || normalized.startsWith('zh-hant')) return 'zh-TW';
+        if (normalized === 'zh-hk' || normalized.startsWith('zh-hk')) return 'zh-TW';
+        if (normalized === 'zh-mo' || normalized.startsWith('zh-mo')) return 'zh-TW';
         if (normalized.startsWith('zh')) return 'zh';
         return 'en';
     }
 
     function detectLanguage() {
+        const sessionLocale = Spicetify?.Platform?.Session?.locale;
+        if (sessionLocale) return resolveLanguage(sessionLocale);
         if (typeof navigator !== 'undefined' && navigator.language) {
             return resolveLanguage(navigator.language);
         }
         return 'en';
     }
 
-    let language = detectLanguage();
+    let languageSetting = 'auto';
+    let language = 'en';
     try {
         const savedLanguage = localStorage.getItem('lyrics-overlay-language');
-        if (savedLanguage && I18N[savedLanguage]) language = savedLanguage;
+        if (savedLanguage) languageSetting = savedLanguage;
     } catch (e) {}
+
+    function applyLanguageSetting(setting) {
+        languageSetting = setting;
+        const resolved = setting === 'auto' ? detectLanguage() : resolveLanguage(setting);
+        language = I18N[resolved] ? resolved : 'en';
+    }
+
+    applyLanguageSetting(languageSetting);
 
     function t(key) {
         return (I18N[language] && I18N[language][key]) || I18N.en[key] || key;
@@ -1955,7 +2021,7 @@
     function generateLanguageOptions() {
         return LANGUAGE_OPTIONS.map(option => {
             const label = t(option.labelKey);
-            const selected = option.value === language ? 'selected' : '';
+            const selected = option.value === languageSetting ? 'selected' : '';
             return `<option value="${option.value}" ${selected}>${label}</option>`;
         }).join('');
     }
@@ -2265,7 +2331,7 @@
         function renderLanguageOptions() {
             if (!languageSelect) return;
             languageSelect.innerHTML = generateLanguageOptions();
-            languageSelect.value = language;
+            languageSelect.value = languageSetting;
         }
 
         function applyTranslations() {
@@ -2320,10 +2386,10 @@
         if (languageSelect) {
             languageSelect.onchange = (e) => {
                 const selected = e.target.value;
-                if (!I18N[selected]) return;
-                language = selected;
+                if (selected !== 'auto' && !I18N[selected]) return;
+                applyLanguageSetting(selected);
                 try {
-                    localStorage.setItem('lyrics-overlay-language', language);
+                    localStorage.setItem('lyrics-overlay-language', languageSetting);
                 } catch (err) {}
                 applyTranslations();
             };

@@ -824,9 +824,27 @@
 
         .settings-content::-webkit-scrollbar,
         .theme-grid::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-            display: none;
+            width: 6px;
+            height: 6px;
+        }
+
+        .settings-content::-webkit-scrollbar-track,
+        .theme-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .settings-content::-webkit-scrollbar-thumb,
+        .theme-grid::-webkit-scrollbar-thumb {
+            background: var(--surface-2);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .settings-content::-webkit-scrollbar-thumb:hover,
+        .theme-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--surface-4);
+            background-clip: padding-box;
         }
 
         .settings-panel.open {
@@ -891,14 +909,16 @@
             padding: 12px;
             overflow-y: auto;
             scrollbar-gutter: stable;
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--surface-2) transparent;
             pointer-events: auto;
             -webkit-app-region: no-drag !important;
             app-region: no-drag !important;
         }
 
-        body[data-color-mode="dark"] .settings-content {
-            scrollbar-width: none;
+        .theme-grid {
+            scrollbar-width: thin;
+            scrollbar-color: var(--surface-2) transparent;
         }
 
         .menu-section-title {

@@ -29,6 +29,12 @@
             controlsBg: 'rgba(0, 0, 0, 0.35)',
             footerBg: 'rgba(0, 0, 0, 0.45)',
             textGlow: 'rgba(30, 215, 96, 0.3)',
+            lightBg: 'linear-gradient(160deg, #f2f7f4 0%, #ecf6ef 40%, #e6f2ea 100%)',
+            lightHeaderBg: 'rgba(232, 244, 236, 0.9)',
+            lightControlsBg: 'rgba(232, 244, 236, 0.75)',
+            lightFooterBg: 'rgba(232, 244, 236, 0.85)',
+            lightSettingsBg: 'rgba(246, 250, 247, 0.98)',
+            lightThemePickerBg: 'rgba(246, 250, 247, 0.98)',
         },
         pink: {
             name: 'Pink Pop',
@@ -40,6 +46,12 @@
             controlsBg: 'rgba(40, 10, 30, 0.4)',
             footerBg: 'rgba(40, 10, 30, 0.5)',
             textGlow: 'rgba(255, 105, 180, 0.4)',
+            lightBg: 'linear-gradient(160deg, #fff1f7 0%, #ffe7f1 40%, #ffddea 100%)',
+            lightHeaderBg: 'rgba(255, 230, 242, 0.9)',
+            lightControlsBg: 'rgba(255, 230, 242, 0.75)',
+            lightFooterBg: 'rgba(255, 230, 242, 0.85)',
+            lightSettingsBg: 'rgba(255, 244, 249, 0.98)',
+            lightThemePickerBg: 'rgba(255, 244, 249, 0.98)',
         },
         kawaii: {
             name: 'Kawaii',
@@ -51,6 +63,12 @@
             controlsBg: 'rgba(50, 30, 50, 0.4)',
             footerBg: 'rgba(50, 30, 50, 0.5)',
             textGlow: 'rgba(255, 183, 221, 0.4)',
+            lightBg: 'linear-gradient(160deg, #f7eef7 0%, #efe6f5 40%, #e9e0f0 100%)',
+            lightHeaderBg: 'rgba(240, 228, 244, 0.9)',
+            lightControlsBg: 'rgba(240, 228, 244, 0.75)',
+            lightFooterBg: 'rgba(240, 228, 244, 0.85)',
+            lightSettingsBg: 'rgba(248, 243, 250, 0.98)',
+            lightThemePickerBg: 'rgba(248, 243, 250, 0.98)',
         },
         ocean: {
             name: 'Ocean Blue',
@@ -62,6 +80,12 @@
             controlsBg: 'rgba(10, 30, 50, 0.4)',
             footerBg: 'rgba(10, 30, 50, 0.5)',
             textGlow: 'rgba(0, 191, 255, 0.4)',
+            lightBg: 'linear-gradient(160deg, #eef6ff 0%, #e2f1ff 40%, #d6ebff 100%)',
+            lightHeaderBg: 'rgba(224, 241, 255, 0.9)',
+            lightControlsBg: 'rgba(224, 241, 255, 0.75)',
+            lightFooterBg: 'rgba(224, 241, 255, 0.85)',
+            lightSettingsBg: 'rgba(242, 249, 255, 0.98)',
+            lightThemePickerBg: 'rgba(242, 249, 255, 0.98)',
         },
         racing: {
             name: 'Racing Red',
@@ -73,6 +97,12 @@
             controlsBg: 'rgba(30, 5, 5, 0.5)',
             footerBg: 'rgba(30, 5, 5, 0.6)',
             textGlow: 'rgba(255, 51, 51, 0.4)',
+            lightBg: 'linear-gradient(160deg, #fff0f0 0%, #ffe5e5 40%, #ffdada 100%)',
+            lightHeaderBg: 'rgba(255, 228, 228, 0.9)',
+            lightControlsBg: 'rgba(255, 228, 228, 0.75)',
+            lightFooterBg: 'rgba(255, 228, 228, 0.85)',
+            lightSettingsBg: 'rgba(255, 246, 246, 0.98)',
+            lightThemePickerBg: 'rgba(255, 246, 246, 0.98)',
         },
         sunset: {
             name: 'Sunset',
@@ -84,6 +114,12 @@
             controlsBg: 'rgba(40, 20, 10, 0.4)',
             footerBg: 'rgba(40, 20, 10, 0.5)',
             textGlow: 'rgba(255, 107, 53, 0.4)',
+            lightBg: 'linear-gradient(160deg, #fff3ea 0%, #ffe8d8 40%, #ffdfc8 100%)',
+            lightHeaderBg: 'rgba(255, 231, 216, 0.9)',
+            lightControlsBg: 'rgba(255, 231, 216, 0.75)',
+            lightFooterBg: 'rgba(255, 231, 216, 0.85)',
+            lightSettingsBg: 'rgba(255, 247, 241, 0.98)',
+            lightThemePickerBg: 'rgba(255, 247, 241, 0.98)',
         },
         purple: {
             name: 'Galaxy',
@@ -95,6 +131,12 @@
             controlsBg: 'rgba(25, 15, 40, 0.4)',
             footerBg: 'rgba(25, 15, 40, 0.5)',
             textGlow: 'rgba(168, 85, 247, 0.4)',
+            lightBg: 'linear-gradient(160deg, #f3f0ff 0%, #ebe5ff 40%, #e2dcff 100%)',
+            lightHeaderBg: 'rgba(234, 228, 255, 0.9)',
+            lightControlsBg: 'rgba(234, 228, 255, 0.75)',
+            lightFooterBg: 'rgba(234, 228, 255, 0.85)',
+            lightSettingsBg: 'rgba(247, 244, 255, 0.98)',
+            lightThemePickerBg: 'rgba(247, 244, 255, 0.98)',
         },
         mint: {
             name: 'Mint Fresh',
@@ -106,6 +148,12 @@
             controlsBg: 'rgba(10, 35, 28, 0.4)',
             footerBg: 'rgba(10, 35, 28, 0.5)',
             textGlow: 'rgba(45, 212, 191, 0.4)',
+            lightBg: 'linear-gradient(160deg, #eefaf6 0%, #e2f7f0 40%, #d7f3ea 100%)',
+            lightHeaderBg: 'rgba(226, 245, 239, 0.9)',
+            lightControlsBg: 'rgba(226, 245, 239, 0.75)',
+            lightFooterBg: 'rgba(226, 245, 239, 0.85)',
+            lightSettingsBg: 'rgba(244, 252, 248, 0.98)',
+            lightThemePickerBg: 'rgba(244, 252, 248, 0.98)',
         },
         gold: {
             name: 'Luxury Gold',
@@ -117,6 +165,12 @@
             controlsBg: 'rgba(30, 25, 15, 0.4)',
             footerBg: 'rgba(30, 25, 15, 0.5)',
             textGlow: 'rgba(251, 191, 36, 0.4)',
+            lightBg: 'linear-gradient(160deg, #fff8ec 0%, #fff1d9 40%, #ffe9c5 100%)',
+            lightHeaderBg: 'rgba(255, 239, 213, 0.9)',
+            lightControlsBg: 'rgba(255, 239, 213, 0.75)',
+            lightFooterBg: 'rgba(255, 239, 213, 0.85)',
+            lightSettingsBg: 'rgba(255, 249, 238, 0.98)',
+            lightThemePickerBg: 'rgba(255, 249, 238, 0.98)',
         },
         cyberpunk: {
             name: 'Cyberpunk',
@@ -128,6 +182,12 @@
             controlsBg: 'rgba(20, 10, 35, 0.5)',
             footerBg: 'rgba(20, 10, 35, 0.6)',
             textGlow: 'rgba(255, 0, 255, 0.5)',
+            lightBg: 'linear-gradient(160deg, #fff0ff 0%, #ffe1ff 40%, #ffd4ff 100%)',
+            lightHeaderBg: 'rgba(255, 224, 255, 0.9)',
+            lightControlsBg: 'rgba(255, 224, 255, 0.75)',
+            lightFooterBg: 'rgba(255, 224, 255, 0.85)',
+            lightSettingsBg: 'rgba(255, 245, 255, 0.98)',
+            lightThemePickerBg: 'rgba(255, 245, 255, 0.98)',
         },
         snow: {
             name: 'Frost',
@@ -139,6 +199,12 @@
             controlsBg: 'rgba(15, 25, 40, 0.4)',
             footerBg: 'rgba(15, 25, 40, 0.5)',
             textGlow: 'rgba(125, 211, 252, 0.4)',
+            lightBg: 'linear-gradient(160deg, #f2f7ff 0%, #e7f0ff 40%, #dde8ff 100%)',
+            lightHeaderBg: 'rgba(229, 240, 255, 0.9)',
+            lightControlsBg: 'rgba(229, 240, 255, 0.75)',
+            lightFooterBg: 'rgba(229, 240, 255, 0.85)',
+            lightSettingsBg: 'rgba(246, 250, 255, 0.98)',
+            lightThemePickerBg: 'rgba(246, 250, 255, 0.98)',
         },
         rose: {
             name: 'Rose Gold',
@@ -150,8 +216,132 @@
             controlsBg: 'rgba(35, 20, 25, 0.4)',
             footerBg: 'rgba(35, 20, 25, 0.5)',
             textGlow: 'rgba(244, 63, 94, 0.4)',
+            lightBg: 'linear-gradient(160deg, #fff1f4 0%, #ffe3ea 40%, #ffd6e0 100%)',
+            lightHeaderBg: 'rgba(255, 229, 236, 0.9)',
+            lightControlsBg: 'rgba(255, 229, 236, 0.75)',
+            lightFooterBg: 'rgba(255, 229, 236, 0.85)',
+            lightSettingsBg: 'rgba(255, 246, 249, 0.98)',
+            lightThemePickerBg: 'rgba(255, 246, 249, 0.98)',
         },
     };
+
+    // ==================== I18N ====================
+    const I18N = {
+        en: {
+            appTitle: 'Lyrics',
+            settings: 'Settings',
+            theme: 'Theme',
+            appearance: 'Appearance',
+            display: 'Display',
+            general: 'General',
+            lightMode: 'Light Mode',
+            idleFade: 'Idle Fade',
+            showLyrics: 'Show Lyrics',
+            centerLyrics: 'Center Lyrics',
+            progressBar: 'Progress Bar',
+            controlsBar: 'Controls',
+            shuffleButton: 'Shuffle Button',
+            repeatButton: 'Repeat Button',
+            likeButton: 'Like Button',
+            closeButton: 'Close Button',
+            fontSizeSlider: 'Font Size Slider',
+            volumeSlider: 'Volume Slider',
+            chooseTheme: 'Choose Theme',
+            sizeLabel: 'Size',
+            loading: 'Loading...',
+            language: 'Language',
+            languageEnglish: 'English',
+            languageChinese: 'Chinese (Simplified)',
+            dragResize: 'Drag to resize',
+            dragMove: 'Drag to move window',
+            close: 'Close',
+            shuffle: 'Shuffle',
+            previous: 'Previous',
+            playPause: 'Play/Pause',
+            next: 'Next',
+            repeatOff: 'Repeat Off',
+            repeatAll: 'Repeat All',
+            repeatOne: 'Repeat One',
+            saveLiked: 'Save to Liked Songs',
+            back: 'Back',
+            noLyrics: 'No lyrics available',
+            lyricsNotFound: 'Lyrics not found for this track',
+            instrumental: 'Instrumental',
+            openFail: 'Could not open lyrics window.',
+            unknown: 'Unknown',
+        },
+        zh: {
+            appTitle: '歌词',
+            settings: '设置',
+            theme: '主题',
+            appearance: '外观',
+            display: '显示',
+            general: '通用',
+            lightMode: '浅色模式',
+            idleFade: '空闲淡出',
+            showLyrics: '显示歌词',
+            centerLyrics: '居中歌词',
+            progressBar: '进度条',
+            controlsBar: '控制区',
+            shuffleButton: '随机播放按钮',
+            repeatButton: '循环按钮',
+            likeButton: '喜欢按钮',
+            closeButton: '关闭按钮',
+            fontSizeSlider: '字号滑块',
+            volumeSlider: '音量滑块',
+            chooseTheme: '选择主题',
+            sizeLabel: '大小',
+            loading: '加载中...',
+            language: '语言',
+            languageEnglish: '英语',
+            languageChinese: '简体中文',
+            dragResize: '拖拽调整大小',
+            dragMove: '拖拽移动窗口',
+            close: '关闭',
+            shuffle: '随机播放',
+            previous: '上一首',
+            playPause: '播放/暂停',
+            next: '下一首',
+            repeatOff: '关闭循环',
+            repeatAll: '列表循环',
+            repeatOne: '单曲循环',
+            saveLiked: '保存到喜欢的歌曲',
+            back: '返回',
+            noLyrics: '暂无歌词',
+            lyricsNotFound: '未找到该曲目歌词',
+            instrumental: '纯音乐',
+            openFail: '无法打开歌词窗口。',
+            unknown: '未知',
+        },
+    };
+
+    const LANGUAGE_OPTIONS = [
+        { value: 'en', labelKey: 'languageEnglish' },
+        { value: 'zh', labelKey: 'languageChinese' },
+    ];
+
+    function resolveLanguage(raw) {
+        const normalized = (raw || '').toLowerCase();
+        if (normalized.startsWith('zh')) return 'zh';
+        return 'en';
+    }
+
+    function detectLanguage() {
+        if (typeof navigator !== 'undefined' && navigator.language) {
+            return resolveLanguage(navigator.language);
+        }
+        return 'en';
+    }
+
+    let language = detectLanguage();
+    try {
+        const savedLanguage = localStorage.getItem('lyrics-overlay-language');
+        if (savedLanguage && I18N[savedLanguage]) language = savedLanguage;
+    } catch (e) {}
+
+    function t(key) {
+        return (I18N[language] && I18N[language][key]) || I18N.en[key] || key;
+    }
 
     // ==================== STATE ====================
     let pipWindow = null;
@@ -166,6 +356,8 @@
     let showRepeatBtn = true;
     let showLikeBtn = true;
     let showCloseBtn = true;
+    let showProgressBar = true;
+    let showControls = true;
     let centerLyrics = true;
     let currentTheme = 'spotify';
     let colorMode = 'dark';
@@ -173,6 +365,10 @@
     let pendingRepeatMode = null;
     let pendingRepeatAt = 0;
     const REPEAT_PENDING_MS = 1000;
+    let lyricsStatus = null;
+    let spinnerAnimId = null;
+    let spinnerAngle = 0;
+    let spinnerActive = false;
 
     // Load saved settings
     try {
@@ -192,6 +388,10 @@
         if (savedShowLike !== null) showLikeBtn = savedShowLike === 'true';
         const savedShowClose = localStorage.getItem('lyrics-overlay-showclose');
         if (savedShowClose !== null) showCloseBtn = savedShowClose === 'true';
+        const savedShowProgress = localStorage.getItem('lyrics-overlay-showprogress');
+        if (savedShowProgress !== null) showProgressBar = savedShowProgress === 'true';
+        const savedShowControls = localStorage.getItem('lyrics-overlay-showcontrols');
+        if (savedShowControls !== null) showControls = savedShowControls === 'true';
         const savedCenterLyrics = localStorage.getItem('lyrics-overlay-centerlyrics');
         if (savedCenterLyrics !== null) centerLyrics = savedCenterLyrics === 'true';
         const savedIdleDelay = localStorage.getItem('lyrics-overlay-idledelay');
@@ -229,8 +429,8 @@
             surface3: base.lightSurface3 || 'rgba(0, 0, 0, 0.04)',
             surface4: base.lightSurface4 || 'rgba(0, 0, 0, 0.08)',
             surface5: base.lightSurface5 || 'rgba(0, 0, 0, 0.15)',
-            settingsBg: base.lightSettingsBg || 'rgba(248, 248, 251, 0.98)',
-            themePickerBg: base.lightThemePickerBg || 'rgba(248, 248, 251, 0.98)',
+            settingsBg: base.lightBg || base.lightSettingsBg || 'rgba(248, 248, 251, 0.98)',
+            themePickerBg: base.lightBg || base.lightThemePickerBg || 'rgba(248, 248, 251, 0.98)',
             toggleKnob: base.lightToggleKnob || '#ffffff',
             menuBtnOpacity: base.lightMenuBtnOpacity || 0.6,
             menuBtnHoverOpacity: base.lightMenuBtnHoverOpacity || 0.9,
@@ -263,8 +463,8 @@
             --surface-3: ${t.surface3 || 'rgba(255, 255, 255, 0.03)'};
             --surface-4: ${t.surface4 || 'rgba(255, 255, 255, 0.1)'};
             --surface-5: ${t.surface5 || 'rgba(255, 255, 255, 0.2)'};
-            --settings-bg: ${t.settingsBg || 'rgba(10, 10, 15, 0.98)'};
-            --theme-picker-bg: ${t.themePickerBg || 'rgba(8, 8, 12, 0.98)'};
+            --settings-bg: ${t.settingsBg || t.bg || 'rgba(10, 10, 15, 0.98)'};
+            --theme-picker-bg: ${t.themePickerBg || t.bg || 'rgba(8, 8, 12, 0.98)'};
             --toggle-knob: ${t.toggleKnob || '#ffffff'};
             --menu-btn-opacity: ${t.menuBtnOpacity ?? 0.4};
             --menu-btn-hover-opacity: ${t.menuBtnHoverOpacity ?? 0.8};
@@ -295,6 +495,7 @@
             position: relative;
         }
 
+
         /* Overlay chrome */
         .overlay {
             position: absolute;
@@ -323,9 +524,15 @@
 
         /* Resize Handle at Top - Subtle */
         .resize-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 4px;
             cursor: ns-resize;
-            flex-shrink: 0;
+            z-index: 3;
+            -webkit-app-region: drag !important;
+            app-region: drag !important;
         }
 
         .resize-handle:hover {
@@ -345,8 +552,8 @@
             flex-shrink: 0;
             cursor: grab;
             user-select: none;
-            -webkit-app-region: drag;
-            app-region: drag;
+            -webkit-app-region: drag !important;
+            app-region: drag !important;
         }
 
         .header:active {
@@ -437,7 +644,21 @@
             flex-direction: column;
             -webkit-app-region: no-drag;
             app-region: no-drag;
-            overflow-y: auto;
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+
+        .settings-panel,
+        .settings-panel * {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
+        }
+
+        .settings-content::-webkit-scrollbar,
+        .theme-grid::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
         }
 
         .settings-panel.open {
@@ -454,13 +675,24 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px;
+            padding: 10px 12px;
             border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--settings-bg);
+            cursor: grab;
+            -webkit-app-region: drag !important;
+            app-region: drag !important;
+        }
+
+        .settings-header:active {
+            cursor: grabbing;
         }
 
         .settings-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text);
         }
@@ -469,15 +701,17 @@
             background: var(--surface-4);
             border: none;
             color: var(--text);
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.15s;
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
         }
 
         .settings-close:hover {
@@ -486,18 +720,27 @@
 
         .settings-content {
             flex: 1;
-            padding: 16px;
+            padding: 12px;
             overflow-y: auto;
+            scrollbar-gutter: stable;
+            scrollbar-width: none;
+            pointer-events: auto;
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
+        }
+
+        body[data-color-mode="dark"] .settings-content {
+            scrollbar-width: none;
         }
 
         .menu-section-title {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            margin-top: 8px;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+            margin-top: 10px;
         }
 
         .menu-section-title:first-child {
@@ -508,12 +751,12 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 14px;
+            padding: 8px 10px;
             cursor: pointer;
             transition: background 0.1s;
             background: var(--surface-3);
-            border-radius: 10px;
-            margin-bottom: 8px;
+            border-radius: 8px;
+            margin-bottom: 6px;
         }
 
         .menu-item:hover {
@@ -521,15 +764,15 @@
         }
 
         .menu-item-label {
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text);
         }
 
         .menu-toggle {
-            width: 44px;
-            height: 24px;
+            width: 36px;
+            height: 20px;
             background: var(--surface-2);
-            border-radius: 12px;
+            border-radius: 10px;
             position: relative;
             transition: background 0.2s;
         }
@@ -541,10 +784,10 @@
         .menu-toggle::after {
             content: '';
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
             background: var(--toggle-knob);
             border-radius: 50%;
             transition: transform 0.2s;
@@ -552,25 +795,25 @@
         }
 
         .menu-toggle.on::after {
-            transform: translateX(20px);
+            transform: translateX(16px);
         }
 
         .menu-divider {
             height: 1px;
             background: var(--border-strong);
-            margin: 16px 0;
+            margin: 10px 0;
         }
 
         /* Theme Button */
         .theme-btn {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             width: 100%;
-            padding: 12px 14px;
+            padding: 8px 10px;
             background: var(--surface-3);
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             transition: background 0.15s;
         }
@@ -579,31 +822,27 @@
             background: var(--surface-2);
         }
 
-        .theme-btn-preview {
-            font-size: 20px;
-        }
-
         .theme-btn-info {
             flex: 1;
             text-align: left;
         }
 
         .theme-btn-label {
-            font-size: 10px;
+            font-size: 9px;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
         }
 
         .theme-btn-name {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: var(--text);
         }
 
         .theme-btn-arrow {
             color: var(--text-dim);
-            font-size: 18px;
+            font-size: 14px;
         }
 
         /* Theme Picker Panel */
@@ -617,6 +856,14 @@
             z-index: 1001;
             display: none;
             flex-direction: column;
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+
+        .theme-picker,
+        .theme-picker * {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
         }
 
         .theme-picker.open {
@@ -627,21 +874,25 @@
         .theme-picker-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
+            gap: 8px;
+            padding: 8px 10px;
             border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--theme-picker-bg);
         }
 
         .theme-picker-back {
             background: var(--surface-4);
             border: none;
             color: var(--text);
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -653,7 +904,7 @@
         }
 
         .theme-picker-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text);
         }
@@ -661,30 +912,34 @@
         .theme-grid {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             align-content: start;
+            scrollbar-gutter: stable;
+            scrollbar-width: none;
+            pointer-events: auto;
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
         }
 
-        .theme-grid::-webkit-scrollbar { width: 4px; }
-        .theme-grid::-webkit-scrollbar-thumb { 
-            background: var(--surface-2);
-            border-radius: 2px; 
+        body[data-color-mode="dark"] .theme-grid {
+            scrollbar-width: none;
         }
 
         .theme-item {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            gap: 4px;
-            padding: 10px 4px;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 8px 10px;
             cursor: pointer;
             transition: all 0.15s;
-            font-size: 10px;
+            font-size: 12px;
             color: var(--text-muted);
-            border-radius: 8px;
+            border-radius: 6px;
             background: var(--surface-3);
             border: 2px solid transparent;
         }
@@ -700,11 +955,65 @@
             color: var(--text);
         }
 
-        .theme-emoji { font-size: 20px; }
+        .theme-swatch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            border-radius: 6px;
+            border: 1px solid var(--border-strong);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .theme-swatch-light {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            border-left: 1px solid rgba(0, 0, 0, 0.08);
+            opacity: 0.95;
+        }
+
+        .theme-accent {
+            position: absolute;
+            right: 3px;
+            bottom: 3px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+        }
+
         .theme-name { 
             font-weight: 500; 
-            text-align: center;
+            text-align: left;
             line-height: 1.2;
+            flex: 1;
+        }
+
+        .menu-item-select {
+            cursor: default;
+        }
+
+        .menu-select {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 120px;
+            outline: none;
+        }
+
+        .menu-select:focus {
+            border-color: var(--accent);
+        }
+
+        .menu-action {
+            display: none;
         }
 
 
@@ -719,6 +1028,10 @@
             flex-shrink: 0;
             -webkit-app-region: no-drag;
             app-region: no-drag;
+        }
+
+        .controls.hidden {
+            display: none;
         }
 
         .controls-group {
@@ -847,6 +1160,13 @@
             transform-origin: center center;
         }
 
+        .lyrics-wrap.centered::before,
+        .lyrics-wrap.centered::after {
+            content: '';
+            display: block;
+            height: 35%;
+        }
+
         .lyrics-wrap.collapsed {
             display: none;
         }
@@ -909,9 +1229,14 @@
             align-items: center;
             justify-content: center;
             height: 100%;
+            min-height: 0;
             text-align: center;
             padding: 20px;
             opacity: var(--status-opacity);
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
         }
 
         .status-msg .icon {
@@ -931,12 +1256,19 @@
         }
 
         .spinner {
+            display: inline-block;
             width: 32px;
             height: 32px;
             border: 3px solid var(--surface-2);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
+            transform-origin: 50% 50%;
+            will-change: transform;
+        }
+
+        @-webkit-keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         @keyframes spin {
@@ -954,6 +1286,10 @@
             max-height: 40px;
             -webkit-app-region: no-drag;
             app-region: no-drag;
+        }
+
+        .progress-row.hidden {
+            display: none;
         }
 
         .idle-row {
@@ -1215,6 +1551,16 @@
             synced: data.isSynced === true,
             lines
         };
+    }
+
+    function yieldToUi() {
+        return new Promise(resolve => {
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(() => setTimeout(resolve, 0));
+            } else {
+                setTimeout(resolve, 0);
+            }
+        });
     }
 
     async function fetchLrcCxLyrics(meta) {
@@ -1490,26 +1836,32 @@
 
             const meta = getTrackMetadata();
 
+            await yieldToUi();
             // Method 4: More Lyrics API
             const moreLyrics = await fetchMoreLyrics(meta);
             if (moreLyrics?.lines?.length) return moreLyrics;
 
+            await yieldToUi();
             // Method 5: LRC.cx API
             const lrcCxLyrics = await fetchLrcCxLyrics(meta);
             if (lrcCxLyrics?.lines?.length) return lrcCxLyrics;
 
+            await yieldToUi();
             // Method 6: NetEase Official API
             const neteaseOfficialLyrics = await fetchNeteaseOfficialLyrics(meta);
             if (neteaseOfficialLyrics?.lines?.length) return neteaseOfficialLyrics;
 
+            await yieldToUi();
             // Method 7: QQ Music (vkeys.cn)
             const qqLyrics = await fetchVkeysQqLyrics(meta);
             if (qqLyrics?.lines?.length) return qqLyrics;
 
+            await yieldToUi();
             // Method 8: NetEase (vkeys.cn)
             const neteaseLyrics = await fetchVkeysNeteaseLyrics(meta);
             if (neteaseLyrics?.lines?.length) return neteaseLyrics;
 
+            await yieldToUi();
             // Method 9: QQ Music (oiapi.net)
             const qq1Lyrics = await fetchQq1Lyrics(meta);
             if (qq1Lyrics?.lines?.length) return qq1Lyrics;
@@ -1562,11 +1914,11 @@
             if (pipWindow) {
                 setupPipWindow(pipWindow);
             } else {
-                Spicetify.showNotification('Could not open lyrics window.', true);
+                Spicetify.showNotification(t('openFail'), true);
             }
         } catch (err) {
             console.error('[Lyric Miniplayer] Fallback popup failed:', err);
-            Spicetify.showNotification('Could not open lyrics window', true);
+            Spicetify.showNotification(t('openFail'), true);
         }
     }
 
@@ -1590,10 +1942,21 @@
     function generateThemeMenuItems() {
         return Object.entries(THEMES).map(([key, theme]) => 
             `<div class="theme-item ${key === currentTheme ? 'active' : ''}" data-theme="${key}">
-                <span class="theme-emoji">${theme.emoji}</span>
+                <span class="theme-swatch" style="background: ${theme.bg};">
+                    <span class="theme-swatch-light" style="background: ${theme.lightBg || theme.bg};"></span>
+                    <span class="theme-accent" style="background: ${theme.accent};"></span>
+                </span>
                 <span class="theme-name">${theme.name}</span>
             </div>`
         ).join('');
+    }
+
+    function generateLanguageOptions() {
+        return LANGUAGE_OPTIONS.map(option => {
+            const label = t(option.labelKey);
+            const selected = option.value === language ? 'selected' : '';
+            return `<option value="${option.value}" ${selected}>${label}</option>`;
+        }).join('');
     }
 
     function setupPipWindow(win) {
@@ -1602,14 +1965,14 @@
 
         // Build the HTML
         doc.write(`<!DOCTYPE html>
-<html lang="en">
+<html lang="${language}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lyrics</title>
+    <title>${t('appTitle')}</title>
     <style id="themeStyles">${generateStyles(currentTheme, colorMode)}</style>
 </head>
-<body>
+<body data-color-mode="${colorMode}">
     <div class="lyrics-wrap ${showLyrics ? '' : 'collapsed'} ${centerLyrics ? 'centered' : ''}" id="lyricsContainer">
         <div class="status-msg">
             <div class="spinner"></div>
@@ -1617,13 +1980,13 @@
     </div>
 
     <div class="overlay" id="chrome">
-        <div class="resize-handle" id="resizeHandle" title="Drag to resize"></div>
-    <div class="header" id="dragHeader" title="Drag to move window">
+        <div class="resize-handle" id="resizeHandle" title="${t('dragResize')}"></div>
+    <div class="header" id="dragHeader" title="${t('dragMove')}">
         <div class="track-info">
-            <div class="track-line" id="trackLine">Loading...</div>
+            <div class="track-line" id="trackLine" data-loading="true">${t('loading')}</div>
         </div>
         <div class="header-btns">
-            <button class="menu-btn" id="menuBtn" title="Settings">
+            <button class="menu-btn" id="menuBtn" title="${t('settings')}">
                 <div class="menu-row">
                     <div class="menu-dot"></div>
                     <div class="menu-dot"></div>
@@ -1637,82 +2000,98 @@
                     <div class="menu-dot"></div>
                 </div>
             </button>
-            <button class="close-btn ${showCloseBtn ? '' : 'hidden'}" id="closeBtn" title="Close">x</button>
+            <button class="close-btn ${showCloseBtn ? '' : 'hidden'}" id="closeBtn" title="${t('close')}">x</button>
         </div>
     </div>
 
     <!-- Settings Panel - Full Screen -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-header">
-            <span class="settings-title">Settings</span>
-            <button class="settings-close" id="settingsClose">x</button>
+            <span class="settings-title" id="settingsTitle">${t('settings')}</span>
+            <button class="settings-close" id="settingsClose" title="${t('close')}">x</button>
         </div>
         <div class="settings-content">
-            <button class="theme-btn" id="openThemePicker">
-                <span class="theme-btn-preview" id="currentThemeEmoji">${THEMES[currentTheme].emoji}</span>
+            <button class="theme-btn" id="openThemePicker" title="${t('chooseTheme')}">
                 <div class="theme-btn-info">
-                    <div class="theme-btn-label">Theme</div>
+                    <div class="theme-btn-label" id="themeBtnLabel">${t('theme')}</div>
                     <div class="theme-btn-name" id="currentThemeName">${THEMES[currentTheme].name}</div>
                 </div>
                 <span class="theme-btn-arrow">></span>
             </button>
             
+            <div class="menu-section-title" id="generalTitle">${t('general')}</div>
+            <div class="menu-item menu-item-select" id="languageItem">
+                <span class="menu-item-label" id="languageLabel">${t('language')}</span>
+                <select class="menu-select" id="languageSelect">
+                    ${generateLanguageOptions()}
+                </select>
+            </div>
+
             <div class="menu-divider"></div>
 
-            <div class="menu-section-title">Appearance</div>
+            <div class="menu-section-title" id="appearanceTitle">${t('appearance')}</div>
             <div class="menu-item" id="toggleModeItem">
-                <span class="menu-item-label">Light Mode</span>
+                <span class="menu-item-label" id="toggleModeLabel">${t('lightMode')}</span>
                 <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode"></div>
             </div>
             <div class="menu-item" id="idleDelayItem">
-                <span class="menu-item-label">Idle Fade</span>
+                <span class="menu-item-label" id="idleDelayLabel">${t('idleFade')}</span>
                 <div class="idle-row">
                     <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}">
                     <span class="value-display" id="idleDelayValue">${(idleDelayMs / 1000).toFixed(1)}s</span>
                 </div>
             </div>
             
-            <div class="menu-section-title">Display</div>
+            <div class="menu-section-title" id="displayTitle">${t('display')}</div>
             <div class="menu-item" id="toggleLyricsItem">
-                <span class="menu-item-label">Show Lyrics</span>
+                <span class="menu-item-label" id="toggleLyricsLabel">${t('showLyrics')}</span>
                 <div class="menu-toggle ${showLyrics ? 'on' : ''}" id="toggleLyrics"></div>
             </div>
             <div class="menu-item" id="toggleCenterItem">
-                <span class="menu-item-label">Center Lyrics</span>
+                <span class="menu-item-label" id="toggleCenterLabel">${t('centerLyrics')}</span>
                 <div class="menu-toggle ${centerLyrics ? 'on' : ''}" id="toggleCenter"></div>
             </div>
             <div class="menu-item" id="toggleShuffleItem">
-                <span class="menu-item-label">Shuffle Button</span>
+                <span class="menu-item-label" id="toggleShuffleLabel">${t('shuffleButton')}</span>
                 <div class="menu-toggle ${showShuffleBtn ? 'on' : ''}" id="toggleShuffle"></div>
             </div>
             <div class="menu-item" id="toggleRepeatItem">
-                <span class="menu-item-label">Repeat Button</span>
+                <span class="menu-item-label" id="toggleRepeatLabel">${t('repeatButton')}</span>
                 <div class="menu-toggle ${showRepeatBtn ? 'on' : ''}" id="toggleRepeat"></div>
             </div>
             <div class="menu-item" id="toggleLikeItem">
-                <span class="menu-item-label">Like Button</span>
+                <span class="menu-item-label" id="toggleLikeLabel">${t('likeButton')}</span>
                 <div class="menu-toggle ${showLikeBtn ? 'on' : ''}" id="toggleLike"></div>
             </div>
             <div class="menu-item" id="toggleCloseItem">
-                <span class="menu-item-label">Close Button</span>
+                <span class="menu-item-label" id="toggleCloseLabel">${t('closeButton')}</span>
                 <div class="menu-toggle ${showCloseBtn ? 'on' : ''}" id="toggleClose"></div>
             </div>
             <div class="menu-item" id="toggleFontItem">
-                <span class="menu-item-label">Font Size Slider</span>
+                <span class="menu-item-label" id="toggleFontLabel">${t('fontSizeSlider')}</span>
                 <div class="menu-toggle ${showFontSlider ? 'on' : ''}" id="toggleFont"></div>
             </div>
             <div class="menu-item" id="toggleVolItem">
-                <span class="menu-item-label">Volume Slider</span>
+                <span class="menu-item-label" id="toggleVolLabel">${t('volumeSlider')}</span>
                 <div class="menu-toggle ${showVolumeSlider ? 'on' : ''}" id="toggleVol"></div>
             </div>
+            <div class="menu-item" id="toggleProgressItem">
+                <span class="menu-item-label" id="toggleProgressLabel">${t('progressBar')}</span>
+                <div class="menu-toggle ${showProgressBar ? 'on' : ''}" id="toggleProgress"></div>
+            </div>
+            <div class="menu-item" id="toggleControlsItem">
+                <span class="menu-item-label" id="toggleControlsLabel">${t('controlsBar')}</span>
+                <div class="menu-toggle ${showControls ? 'on' : ''}" id="toggleControls"></div>
+            </div>
+
         </div>
     </div>
 
     <!-- Theme Picker Panel -->
     <div class="theme-picker" id="themePicker">
         <div class="theme-picker-header">
-            <button class="theme-picker-back" id="themePickerBack"><</button>
-            <span class="theme-picker-title">Choose Theme</span>
+            <button class="theme-picker-back" id="themePickerBack" title="${t('back')}"><</button>
+            <span class="theme-picker-title" id="themePickerTitle">${t('chooseTheme')}</span>
         </div>
         <div class="theme-grid" id="themeGrid">
             ${generateThemeMenuItems()}
@@ -1723,7 +2102,7 @@
 
     <div class="footer" id="footer">
         <div class="footer-row ${showFontSlider ? '' : 'collapsed'}" id="fontRow">
-            <span class="control-label">Size</span>
+            <span class="control-label" id="fontSizeLabel">${t('sizeLabel')}</span>
             <input type="range" class="slider" id="fontSlider" min="${CONFIG.minFontSize}" max="${CONFIG.maxFontSize}" value="${fontSize}">
             <span class="value-display" id="fontValue">${fontSize}px</span>
         </div>
@@ -1736,7 +2115,7 @@
         </div>
     </div>
 
-    <div class="progress-row" id="progressRow">
+    <div class="progress-row ${showProgressBar ? '' : 'hidden'}" id="progressRow">
         <span class="progress-time" id="elapsedTime">0:00</span>
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
@@ -1744,27 +2123,27 @@
         <span class="progress-time" id="totalTime">0:00</span>
     </div>
 
-    <div class="controls">
+    <div class="controls ${showControls ? '' : 'hidden'}">
         <div class="controls-group side left"></div>
         <div class="controls-group center">
-            <button class="ctrl-btn ${showShuffleBtn ? '' : 'hidden'}" id="shuffleBtn" title="Shuffle">
+            <button class="ctrl-btn ${showShuffleBtn ? '' : 'hidden'}" id="shuffleBtn" title="${t('shuffle')}">
                 <svg viewBox="0 0 16 16" id="shuffleIcon"><path d="M13.151.922a.75.75 0 1 0-1.06 1.06L13.109 3H11.16a3.75 3.75 0 0 0-2.873 1.34l-6.173 7.356A2.25 2.25 0 0 1 .39 12.5H0V14h.391a3.75 3.75 0 0 0 2.873-1.34l6.173-7.356a2.25 2.25 0 0 1 1.724-.804h1.947l-1.017 1.018a.75.75 0 0 0 1.06 1.06l2.306-2.306a.75.75 0 0 0 0-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 0 0 .39 3.5z"/><path d="m7.5 10.723.98-1.167 1.796 2.14a2.25 2.25 0 0 0 1.724.804h1.947l-1.017-1.018a.75.75 0 1 1 1.06-1.06l2.306 2.306a.75.75 0 0 1 0 1.06l-2.306 2.306a.75.75 0 1 1-1.06-1.06L14.109 14H12.16a3.75 3.75 0 0 1-2.873-1.34l-1.787-2.14z"/></svg>
             </button>
-            <button class="ctrl-btn" id="prevBtn" title="Previous">
+            <button class="ctrl-btn" id="prevBtn" title="${t('previous')}">
                 <svg viewBox="0 0 16 16"><path d="M3.3 1a.7.7 0 0 1 .7.7v5.15l9.95-5.744a.7.7 0 0 1 1.05.606v12.575a.7.7 0 0 1-1.05.607L4 9.149V14.3a.7.7 0 0 1-.7.7H1.7a.7.7 0 0 1-.7-.7V1.7a.7.7 0 0 1 .7-.7h1.6z"/></svg>
             </button>
-            <button class="ctrl-btn play-btn" id="playBtn" title="Play/Pause">
+            <button class="ctrl-btn play-btn" id="playBtn" title="${t('playPause')}">
                 <svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/></svg>
             </button>
-            <button class="ctrl-btn" id="nextBtn" title="Next">
+            <button class="ctrl-btn" id="nextBtn" title="${t('next')}">
                 <svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>
             </button>
-            <button class="ctrl-btn ${showRepeatBtn ? '' : 'hidden'}" id="repeatBtn" title="Repeat Off">
+            <button class="ctrl-btn ${showRepeatBtn ? '' : 'hidden'}" id="repeatBtn" title="${t('repeatOff')}">
                 <svg viewBox="0 0 16 16" id="repeatIcon"><path d="M11.17 3.5H5.5A2.5 2.5 0 0 0 3 6v1.25a.75.75 0 0 1-1.5 0V6A4 4 0 0 1 5.5 2h5.67l-.9-.9a.75.75 0 1 1 1.06-1.06l2.18 2.18a.75.75 0 0 1 0 1.06l-2.18 2.18a.75.75 0 1 1-1.06-1.06l.9-.9zM4.83 12.5H10.5A2.5 2.5 0 0 0 13 10V8.75a.75.75 0 0 1 1.5 0V10a4 4 0 0 1-4 4H4.83l.9.9a.75.75 0 1 1-1.06 1.06L2.5 13.78a.75.75 0 0 1 0-1.06l2.18-2.18a.75.75 0 1 1 1.06 1.06l-.9.9z"/></svg>
             </button>
         </div>
         <div class="controls-group side right">
-            <button class="ctrl-btn ${showLikeBtn ? '' : 'hidden'}" id="likeBtn" title="Save to Liked Songs">
+            <button class="ctrl-btn ${showLikeBtn ? '' : 'hidden'}" id="likeBtn" title="${t('saveLiked')}">
                 <svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>
             </button>
         </div>
@@ -1778,6 +2157,25 @@
         const menuBtn = doc.getElementById('menuBtn');
         const settingsPanel = doc.getElementById('settingsPanel');
         const settingsClose = doc.getElementById('settingsClose');
+        const settingsTitle = doc.getElementById('settingsTitle');
+        const themeBtnLabel = doc.getElementById('themeBtnLabel');
+        const generalTitle = doc.getElementById('generalTitle');
+        const languageLabel = doc.getElementById('languageLabel');
+        const languageSelect = doc.getElementById('languageSelect');
+        const appearanceTitle = doc.getElementById('appearanceTitle');
+        const displayTitle = doc.getElementById('displayTitle');
+        const toggleModeLabel = doc.getElementById('toggleModeLabel');
+        const idleDelayLabel = doc.getElementById('idleDelayLabel');
+        const toggleLyricsLabel = doc.getElementById('toggleLyricsLabel');
+        const toggleCenterLabel = doc.getElementById('toggleCenterLabel');
+        const toggleProgressLabel = doc.getElementById('toggleProgressLabel');
+        const toggleControlsLabel = doc.getElementById('toggleControlsLabel');
+        const toggleShuffleLabel = doc.getElementById('toggleShuffleLabel');
+        const toggleRepeatLabel = doc.getElementById('toggleRepeatLabel');
+        const toggleLikeLabel = doc.getElementById('toggleLikeLabel');
+        const toggleCloseLabel = doc.getElementById('toggleCloseLabel');
+        const toggleFontLabel = doc.getElementById('toggleFontLabel');
+        const toggleVolLabel = doc.getElementById('toggleVolLabel');
         const prevBtn = doc.getElementById('prevBtn');
         const playBtn = doc.getElementById('playBtn');
         const nextBtn = doc.getElementById('nextBtn');
@@ -1801,6 +2199,10 @@
         const toggleLyrics = doc.getElementById('toggleLyrics');
         const toggleCenterItem = doc.getElementById('toggleCenterItem');
         const toggleCenter = doc.getElementById('toggleCenter');
+        const toggleProgressItem = doc.getElementById('toggleProgressItem');
+        const toggleProgress = doc.getElementById('toggleProgress');
+        const toggleControlsItem = doc.getElementById('toggleControlsItem');
+        const toggleControls = doc.getElementById('toggleControls');
         const toggleModeItem = doc.getElementById('toggleModeItem');
         const toggleMode = doc.getElementById('toggleMode');
         const idleDelaySlider = doc.getElementById('idleDelaySlider');
@@ -1819,12 +2221,15 @@
         const toggleVol = doc.getElementById('toggleVol');
         const themeStyles = doc.getElementById('themeStyles');
         const openThemePickerBtn = doc.getElementById('openThemePicker');
-        const currentThemeEmoji = doc.getElementById('currentThemeEmoji');
         const currentThemeName = doc.getElementById('currentThemeName');
         const themePicker = doc.getElementById('themePicker');
         const themePickerBack = doc.getElementById('themePickerBack');
+        const themePickerTitle = doc.getElementById('themePickerTitle');
         const themeGrid = doc.getElementById('themeGrid');
         const closeBtn = doc.getElementById('closeBtn');
+        const resizeHandle = doc.getElementById('resizeHandle');
+        const dragHeader = doc.getElementById('dragHeader');
+        const fontSizeLabel = doc.getElementById('fontSizeLabel');
         const chrome = doc.getElementById('chrome');
         let idleTimer = null;
 
@@ -1855,6 +2260,75 @@
         themePickerBack.onclick = () => {
             themePicker.classList.remove('open');
         };
+
+        function renderLanguageOptions() {
+            if (!languageSelect) return;
+            languageSelect.innerHTML = generateLanguageOptions();
+            languageSelect.value = language;
+        }
+
+        function applyTranslations() {
+            if (doc?.documentElement) doc.documentElement.lang = language;
+            doc.title = t('appTitle');
+
+            if (settingsTitle) settingsTitle.textContent = t('settings');
+            if (themeBtnLabel) themeBtnLabel.textContent = t('theme');
+            if (generalTitle) generalTitle.textContent = t('general');
+            if (languageLabel) languageLabel.textContent = t('language');
+            if (appearanceTitle) appearanceTitle.textContent = t('appearance');
+            if (displayTitle) displayTitle.textContent = t('display');
+            if (toggleModeLabel) toggleModeLabel.textContent = t('lightMode');
+            if (idleDelayLabel) idleDelayLabel.textContent = t('idleFade');
+            if (toggleLyricsLabel) toggleLyricsLabel.textContent = t('showLyrics');
+            if (toggleCenterLabel) toggleCenterLabel.textContent = t('centerLyrics');
+            if (toggleProgressLabel) toggleProgressLabel.textContent = t('progressBar');
+            if (toggleControlsLabel) toggleControlsLabel.textContent = t('controlsBar');
+            if (toggleShuffleLabel) toggleShuffleLabel.textContent = t('shuffleButton');
+            if (toggleRepeatLabel) toggleRepeatLabel.textContent = t('repeatButton');
+            if (toggleLikeLabel) toggleLikeLabel.textContent = t('likeButton');
+            if (toggleCloseLabel) toggleCloseLabel.textContent = t('closeButton');
+            if (toggleFontLabel) toggleFontLabel.textContent = t('fontSizeSlider');
+            if (toggleVolLabel) toggleVolLabel.textContent = t('volumeSlider');
+            if (themePickerTitle) themePickerTitle.textContent = t('chooseTheme');
+            if (fontSizeLabel) fontSizeLabel.textContent = t('sizeLabel');
+
+            if (menuBtn) menuBtn.title = t('settings');
+            if (settingsClose) settingsClose.title = t('close');
+            if (closeBtn) closeBtn.title = t('close');
+            if (resizeHandle) resizeHandle.title = t('dragResize');
+            if (dragHeader) dragHeader.title = t('dragMove');
+            if (openThemePickerBtn) openThemePickerBtn.title = t('chooseTheme');
+            if (themePickerBack) themePickerBack.title = t('back');
+
+            if (shuffleBtn) shuffleBtn.title = t('shuffle');
+            if (prevBtn) prevBtn.title = t('previous');
+            if (playBtn) playBtn.title = t('playPause');
+            if (nextBtn) nextBtn.title = t('next');
+            if (likeBtn) likeBtn.title = t('saveLiked');
+
+            const trackLineEl = doc.getElementById('trackLine');
+            if (trackLineEl?.dataset?.loading === 'true') {
+                trackLineEl.textContent = t('loading');
+            }
+
+            renderLanguageOptions();
+            applyRepeatUi(resolveRepeatMode());
+            refreshLyricsStatus();
+        }
+
+        if (languageSelect) {
+            languageSelect.onchange = (e) => {
+                const selected = e.target.value;
+                if (!I18N[selected]) return;
+                language = selected;
+                try {
+                    localStorage.setItem('lyrics-overlay-language', language);
+                } catch (err) {}
+                applyTranslations();
+            };
+        }
+
+        applyTranslations();
 
         let chromeFadeAnim = null;
         let chromeHidden = false;
@@ -1913,7 +2387,6 @@
                     themeStyles.textContent = generateStyles(currentTheme, colorMode);
                     
                     // Update theme button
-                    currentThemeEmoji.textContent = THEMES[currentTheme].emoji;
                     currentThemeName.textContent = THEMES[currentTheme].name;
                     
                     // Update active state
@@ -1943,11 +2416,27 @@
             localStorage.setItem('lyrics-overlay-centerlyrics', centerLyrics);
         };
 
+        toggleProgressItem.onclick = () => {
+            showProgressBar = !showProgressBar;
+            toggleProgress.classList.toggle('on', showProgressBar);
+            progressRow.classList.toggle('hidden', !showProgressBar);
+            localStorage.setItem('lyrics-overlay-showprogress', showProgressBar);
+        };
+
+        toggleControlsItem.onclick = () => {
+            showControls = !showControls;
+            toggleControls.classList.toggle('on', showControls);
+            const controlsEl = doc.querySelector('.controls');
+            if (controlsEl) controlsEl.classList.toggle('hidden', !showControls);
+            localStorage.setItem('lyrics-overlay-showcontrols', showControls);
+        };
+
         toggleModeItem.onclick = () => {
             colorMode = colorMode === 'light' ? 'dark' : 'light';
             toggleMode.classList.toggle('on', colorMode === 'light');
             localStorage.setItem('lyrics-overlay-colormode', colorMode);
             themeStyles.textContent = generateStyles(currentTheme, colorMode);
+            if (doc?.body) doc.body.dataset.colorMode = colorMode;
         };
 
         idleDelaySlider.oninput = (e) => {
@@ -2056,7 +2545,7 @@
         function applyRepeatUi(mode) {
             repeatBtn.classList.toggle('repeat-on', mode === 'context');
             repeatBtn.classList.toggle('repeat-one', mode === 'track');
-            repeatBtn.title = mode === 'track' ? 'Repeat One' : mode === 'context' ? 'Repeat All' : 'Repeat Off';
+            repeatBtn.title = mode === 'track' ? t('repeatOne') : mode === 'context' ? t('repeatAll') : t('repeatOff');
         }
         updateRepeatState();
 
@@ -2178,9 +2667,10 @@
         // Update track info
         const trackLineEl = doc.getElementById('trackLine');
         if (trackLineEl) {
-            const title = track.name || 'Unknown';
-            const artist = track.artists?.map(a => a.name).join(', ') || 'Unknown';
+            const title = track.name || t('unknown');
+            const artist = track.artists?.map(a => a.name).join(', ') || t('unknown');
             trackLineEl.textContent = `${title} - ${artist}`;
+            trackLineEl.dataset.loading = 'false';
         }
 
         // Update play button
@@ -2277,7 +2767,7 @@
         const mode = resolveRepeatMode();
         repeatBtn.classList.toggle('repeat-on', mode === 'context');
         repeatBtn.classList.toggle('repeat-one', mode === 'track');
-        repeatBtn.title = mode === 'track' ? 'Repeat One' : mode === 'context' ? 'Repeat All' : 'Repeat Off';
+        repeatBtn.title = mode === 'track' ? t('repeatOne') : mode === 'context' ? t('repeatAll') : t('repeatOff');
     }
 
     function updatePipPlayButton() {
@@ -2337,6 +2827,79 @@
         totalTime.textContent = formatTime(durationMs);
     }
 
+    function setLyricsStatus(status) {
+        lyricsStatus = status;
+        if (!pipWindow || pipWindow.closed) return;
+
+        const container = pipWindow.document.getElementById('lyricsContainer');
+        if (!container) return;
+
+        if (status === 'loading') {
+            container.innerHTML = '<div class="status-msg"><div class="spinner"></div></div>';
+            startSpinnerAnimation();
+            return;
+        }
+
+        if (status === 'no-lyrics') {
+            stopSpinnerAnimation();
+            container.innerHTML = `
+                <div class="status-msg">
+                    <div class="icon">!</div>
+                    <div class="text">${t('noLyrics')}</div>
+                    <div class="subtext">${t('lyricsNotFound')}</div>
+                </div>
+            `;
+            return;
+        }
+
+        if (status === 'instrumental') {
+            stopSpinnerAnimation();
+            container.innerHTML = `
+                <div class="status-msg">
+                    <div class="icon">i</div>
+                    <div class="text">${t('instrumental')}</div>
+                </div>
+            `;
+        }
+    }
+
+    function refreshLyricsStatus() {
+        if (!lyricsStatus) return;
+        setLyricsStatus(lyricsStatus);
+    }
+
+    function startSpinnerAnimation() {
+        if (spinnerActive) return;
+        if (!pipWindow || pipWindow.closed) return;
+        spinnerActive = true;
+        spinnerAngle = 0;
+
+        const animate = (ts) => {
+            if (!spinnerActive || !pipWindow || pipWindow.closed) {
+                spinnerAnimId = null;
+                return;
+            }
+            const doc = pipWindow.document;
+            const spinner = doc.querySelector('.spinner');
+            if (!spinner || lyricsStatus !== 'loading') {
+                spinnerAnimId = null;
+                spinnerActive = false;
+                return;
+            }
+            spinnerAngle = (spinnerAngle + 6) % 360;
+            spinner.style.transform = `rotate(${spinnerAngle}deg)`;
+            spinnerAnimId = requestAnimationFrame(animate);
+        };
+
+        spinnerAnimId = requestAnimationFrame(animate);
+    }
+
+    function stopSpinnerAnimation() {
+        spinnerActive = false;
+        if (spinnerAnimId) cancelAnimationFrame(spinnerAnimId);
+        spinnerAnimId = null;
+    }
+
     async function loadLyrics(uri) {
         if (!pipWindow || pipWindow.closed) return;
 
@@ -2344,19 +2907,14 @@
         if (!container) return;
 
         // Show loading
-        container.innerHTML = '<div class="status-msg"><div class="spinner"></div></div>';
+        setLyricsStatus('loading');
+        await yieldToUi();
 
         // Fetch lyrics
         currentLyrics = await fetchLyrics(uri);
 
         if (!currentLyrics || !currentLyrics.lines?.length) {
-            container.innerHTML = `
-                <div class="status-msg">
-                    <div class="icon">!</div>
-                    <div class="text">No lyrics available</div>
-                    <div class="subtext">Lyrics not found for this track</div>
-                </div>
-            `;
+            setLyricsStatus('no-lyrics');
             return;
         }
 
@@ -2367,12 +2925,14 @@
                 `<div class="lyric" data-time="${line.startTime}" data-idx="${idx}" style="font-size:${fontSize}px">${formatLyricHtml(line)}</div>`
             ).join('');
 
-        container.innerHTML = lyricsHtml || `
-            <div class="status-msg">
-                <div class="icon">i</div>
-                <div class="text">Instrumental</div>
-            </div>
-        `;
+        if (!lyricsHtml) {
+            setLyricsStatus('instrumental');
+            return;
+        }
+
+        lyricsStatus = null;
+        stopSpinnerAnimation();
+        container.innerHTML = lyricsHtml;
     }
 
     function updateCurrentLyric() {

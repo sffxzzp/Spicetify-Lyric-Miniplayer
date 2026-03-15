@@ -1,32 +1,29 @@
-# Lyric Miniplayer
+# Lyric Miniplayer (fork)
 
-A Spicetify extension that creates a **floating Picture-in-Picture lyrics window** that stays on top of other applications — like YouTube's mini-player, but for lyrics!
+A Spicetify extension that creates a **floating Picture-in-Picture lyrics window** that stays on top of other applications - like YouTube's mini-player, but for lyrics!
 
 ![Preview](preview.png)
 
 ## Features
 
-- **Floating Window** — Opens lyrics in a separate always-on-top window
-- **Synced Lyrics** — Automatically highlights and scrolls to the current line
-- **Playback Controls** — Previous, Play/Pause, Next, Shuffle buttons
-- **Like Button** — Save songs to your Liked Songs directly from the miniplayer
-- **Shuffle Button** — Toggle shuffle mode
-- **Volume Control** — Adjust volume with slider, click speaker to mute
-- **Adjustable Font Size** — Slider to make lyrics larger or smaller
-- **12 Beautiful Themes** — Spotify, Pink Pop, Kawaii, Ocean Blue, Racing Red, Sunset, Galaxy, Mint Fresh, Luxury Gold, Cyberpunk, Frost, Rose Gold
-- **Center/Left Align** — Toggle between centered or left-aligned lyrics
-- **Click to Seek** — Click any lyric line to jump to that part of the song
-- **Full Settings Panel** — Customize everything to your liking
-- **Remembers Preferences** — All settings are saved automatically
+- **Floating Window** - Opens lyrics in a separate always-on-top window
+- **Synced Lyrics** - Automatically highlights and scrolls to the current line
+- **Playback Controls** - Previous, Play/Pause, Next, Shuffle, Repeat buttons
+- **Like Button** - Save songs to your Liked Songs directly from the miniplayer
+- **Shuffle Button** - Toggle shuffle mode
+- **Repeat (Loop) Button** - Toggle repeat off/all/one
+- **Volume Control** - Adjust volume with slider, click speaker to mute
+- **Adjustable Font Size** - Slider to make lyrics larger or smaller
+- **12 Beautiful Themes** - Spotify, Pink Pop, Kawaii, Ocean Blue, Racing Red, Sunset, Galaxy, Mint Fresh, Luxury Gold, Cyberpunk, Frost, Rose Gold
+- **Light/Dark Mode** - Switch between light and dark UI
+- **Center/Left Align** - Toggle between centered or left-aligned lyrics
+- **Click to Seek** - Click any lyric line to jump to that part of the song
+- **Progress Bar** - Track progress with click-to-seek
+- **Controls Auto-hide** - Idle fade for a cleaner view
+- **Full Settings Panel** - Customize everything to your liking
+- **Remembers Preferences** - All settings are saved automatically
 
 ## Installation
-
-### From Spicetify Marketplace (Recommended)
-
-1. Open Spotify
-2. Go to the Marketplace
-3. Search for "Lyric Miniplayer"
-4. Click Install
 
 ### Manual Installation
 
@@ -83,10 +80,13 @@ Click the **⠿** in the header to access settings:
 | Toggle | Description |
 |--------|-------------|
 | **Show Lyrics** | Show/hide the lyrics section |
+| **Light Mode** | Toggle light/dark UI |
+| **Idle Fade** | Auto-hide controls after a short idle delay |
 | **Center Lyrics** | Toggle centered or left-aligned lyrics |
 | **Shuffle Button** | Show/hide shuffle button in controls |
+| **Repeat Button** | Show/hide repeat button in controls |
 | **Like Button** | Show/hide the heart button |
-| **Close Button** | Show/hide the × close button |
+| **Close Button** | Show/hide the close button |
 | **Font Size Slider** | Show/hide the font size control |
 | **Volume Slider** | Show/hide the volume control |
 
@@ -100,7 +100,9 @@ All preferences are saved and persist between sessions.
 | Play/Pause | Play/Pause |
 | Next | Next track |
 | Shuffle | Toggle shuffle |
+| Repeat | Repeat off/all/one |
 | Heart | Like/Unlike song |
+| Progress Bar | Seek within track |
 | Close | Close miniplayer |
 
 ## Troubleshooting
@@ -128,7 +130,7 @@ spicetify apply
 
 ## License
 
-MIT License — Feel free to modify and share!
+MIT License - Feel free to modify and share!
 
 ## Credits
 

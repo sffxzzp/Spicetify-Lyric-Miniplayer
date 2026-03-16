@@ -481,6 +481,40 @@
         el.onclick = handler;
     }
 
+    function bindDragScroll(container, doc, options = {}) {
+        if (!container || !doc) return;
+        const { ignoreSelector } = options;
+        let active = false;
+        let startY = 0;
+        let startScroll = 0;
+        let prevUserSelect = '';
+
+        on(container, 'mousedown', (e) => {
+            if (e.button !== 0) return;
+            if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+            active = true;
+            startY = e.clientY;
+            startScroll = container.scrollTop;
+            prevUserSelect = doc.body.style.userSelect || '';
+            doc.body.style.userSelect = 'none';
+        });
+
+        on(doc, 'mousemove', (e) => {
+            if (!active) return;
+            const delta = e.clientY - startY;
+            container.scrollTop = startScroll - delta;
+        });
+
+        const stop = () => {
+            if (!active) return;
+            active = false;
+            doc.body.style.userSelect = prevUserSelect;
+        };
+
+        on(doc, 'mouseup', stop);
+        on(container, 'mouseleave', stop);
+    }
+
     function resolveLanguage(raw) {
         const normalized = (raw || '').toLowerCase();
         if (normalized === 'zh-tw' || normalized.startsWith('zh-tw')) return 'zh-TW';
@@ -661,6 +695,11 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            cursor: default;
+        }
+
+        button, select, option, input, textarea {
+            cursor: default;
         }
 
 
@@ -688,6 +727,16 @@
 
         .overlay.idle-hidden {
             pointer-events: none;
+        }
+
+        .overlay.settings-open {
+            pointer-events: auto;
+        }
+
+        .overlay.settings-open .header,
+        .overlay.settings-open .resize-handle {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
         }
 
         /* Resize Handle at Top - Subtle */
@@ -757,7 +806,7 @@
             flex-direction: column;
             gap: 1px;
             padding: 3px 3px;
-            cursor: pointer;
+            cursor: default;
             opacity: var(--menu-btn-opacity);
             transition: opacity 0.15s;
             background: none;
@@ -785,7 +834,7 @@
             border: none;
             color: var(--text-dim);
             font-size: 14px;
-            cursor: pointer;
+            cursor: default;
             padding: 2px 4px;
             transition: all 0.15s;
             line-height: 1;
@@ -816,16 +865,17 @@
             overscroll-behavior: contain;
         }
 
-        .settings-panel,
-        .settings-panel * {
+        .settings-content,
+        .settings-content * {
             -webkit-app-region: no-drag !important;
             app-region: no-drag !important;
         }
 
         .settings-content::-webkit-scrollbar,
         .theme-grid::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 0;
+            height: 0;
+            display: none;
         }
 
         .settings-content::-webkit-scrollbar-track,
@@ -868,13 +918,25 @@
             top: 0;
             z-index: 2;
             background: var(--settings-bg);
-            cursor: grab;
-            -webkit-app-region: drag !important;
-            app-region: drag !important;
+            cursor: default;
+        }
+
+        .settings-drag-handle {
+            position: sticky;
+            top: 0;
+            height: 10px;
+            cursor: default;
+            z-index: 3;
+        }
+
+        .settings-header,
+        .settings-header * {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
         }
 
         .settings-header:active {
-            cursor: grabbing;
+            cursor: default;
         }
 
         .settings-title {
@@ -890,7 +952,7 @@
             width: 26px;
             height: 26px;
             border-radius: 6px;
-            cursor: pointer;
+            cursor: default;
             font-size: 14px;
             display: flex;
             align-items: center;
@@ -909,16 +971,14 @@
             padding: 12px;
             overflow-y: auto;
             scrollbar-gutter: stable;
-            scrollbar-width: thin;
-            scrollbar-color: var(--surface-2) transparent;
+            scrollbar-width: none;
             pointer-events: auto;
             -webkit-app-region: no-drag !important;
             app-region: no-drag !important;
         }
 
         .theme-grid {
-            scrollbar-width: thin;
-            scrollbar-color: var(--surface-2) transparent;
+            scrollbar-width: none;
         }
 
         .menu-section-title {
@@ -940,7 +1000,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 8px 10px;
-            cursor: pointer;
+            cursor: default;
             transition: background 0.1s;
             background: var(--surface-3);
             border-radius: 8px;
@@ -963,6 +1023,7 @@
             border-radius: 10px;
             position: relative;
             transition: background 0.2s;
+            cursor: default;
         }
 
         .menu-toggle.on {
@@ -1002,7 +1063,7 @@
             background: var(--surface-3);
             border: none;
             border-radius: 8px;
-            cursor: pointer;
+            cursor: default;
             transition: background 0.15s;
         }
 
@@ -1048,8 +1109,19 @@
             overscroll-behavior: contain;
         }
 
-        .theme-picker,
-        .theme-picker * {
+        .theme-grid,
+        .theme-grid * {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
+        }
+
+        .theme-picker-header,
+        .theme-picker-header * {
+            -webkit-app-region: no-drag !important;
+            app-region: no-drag !important;
+        }
+
+        .theme-picker-back {
             -webkit-app-region: no-drag !important;
             app-region: no-drag !important;
         }
@@ -1072,6 +1144,14 @@
             background: var(--theme-picker-bg);
         }
 
+        .theme-drag-handle {
+            position: sticky;
+            top: 0;
+            height: 10px;
+            cursor: default;
+            z-index: 3;
+        }
+
         .theme-picker-back {
             background: var(--surface-4);
             border: none;
@@ -1079,7 +1159,7 @@
             width: 24px;
             height: 24px;
             border-radius: 6px;
-            cursor: pointer;
+            cursor: default;
             font-size: 14px;
             display: flex;
             align-items: center;
@@ -1123,7 +1203,7 @@
             justify-content: flex-start;
             gap: 8px;
             padding: 8px 10px;
-            cursor: pointer;
+            cursor: default;
             transition: all 0.15s;
             font-size: 12px;
             color: var(--text-muted);
@@ -1249,7 +1329,7 @@
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            cursor: pointer;
+            cursor: default;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1373,7 +1453,7 @@
             color: var(--text);
             opacity: var(--lyric-base-opacity);
             transition: all 0.2s ease;
-            cursor: pointer;
+            cursor: default;
             line-height: 1.35;
             transform-origin: left center;
         }
@@ -2204,7 +2284,8 @@
 
         const buildSettingsPanel = () => `
         <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
+            <div class="settings-drag-handle" id="settingsDragHandle"></div>
+            <div class="settings-header" id="settingsHeader">
                 <span class="settings-title" id="settingsTitle">${t('settings')}</span>
                 <button class="settings-close" id="settingsClose" title="${t('close')}">x</button>
             </div>
@@ -2257,7 +2338,8 @@
 
         const buildThemePicker = () => `
         <div class="theme-picker" id="themePicker">
-            <div class="theme-picker-header">
+            <div class="theme-drag-handle" id="themePickerDragHandle"></div>
+            <div class="theme-picker-header" id="themePickerHeader">
                 <button class="theme-picker-back" id="themePickerBack" title="${t('back')}"><</button>
                 <span class="theme-picker-title" id="themePickerTitle">${t('chooseTheme')}</span>
             </div>
@@ -2357,6 +2439,8 @@
             ...withIds(doc, [
                 'menuBtn',
                 'settingsPanel',
+                'settingsDragHandle',
+                'settingsHeader',
                 'settingsClose',
                 'settingsTitle',
                 'themeBtnLabel',
@@ -2425,6 +2509,8 @@
                 'openThemePicker',
                 'currentThemeName',
                 'themePicker',
+                'themePickerDragHandle',
+                'themePickerHeader',
                 'themePickerBack',
                 'themePickerTitle',
                 'themeGrid',
@@ -2436,6 +2522,7 @@
                 'trackLine',
             ]),
             controls: doc.querySelector('.controls'),
+            settingsContent: doc.querySelector('.settings-content'),
             win,
         };
 
@@ -2444,6 +2531,8 @@
         const {
             menuBtn,
             settingsPanel,
+            settingsDragHandle,
+            settingsHeader,
             settingsClose,
             settingsTitle,
             themeBtnLabel,
@@ -2511,6 +2600,8 @@
             openThemePicker: openThemePickerBtn,
             currentThemeName,
             themePicker,
+            themePickerDragHandle,
+            themePickerHeader,
             themePickerBack,
             themePickerTitle,
             themeGrid,
@@ -2520,6 +2611,7 @@
             fontSizeLabel,
             chrome,
             trackLine,
+            settingsContent,
         } = ui;
         let idleTimer = null;
 
@@ -2591,6 +2683,44 @@
         let chromeFadeAnim = null;
         let chromeHidden = false;
 
+        function bindWindowDrag(handle, ignoreSelector) {
+            if (!handle) return;
+            let dragging = false;
+            let lastX = 0;
+            let lastY = 0;
+            let prevUserSelect = '';
+
+            on(handle, 'mousedown', (e) => {
+                if (e.button !== 0) return;
+                if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+                dragging = true;
+                lastX = e.screenX;
+                lastY = e.screenY;
+                prevUserSelect = doc.body.style.userSelect || '';
+                doc.body.style.userSelect = 'none';
+            });
+
+            on(doc, 'mousemove', (e) => {
+                if (!dragging) return;
+                const dx = e.screenX - lastX;
+                const dy = e.screenY - lastY;
+                lastX = e.screenX;
+                lastY = e.screenY;
+                try {
+                    win.moveBy(dx, dy);
+                } catch (err) {}
+            });
+
+            const stopDrag = () => {
+                if (!dragging) return;
+                dragging = false;
+                doc.body.style.userSelect = prevUserSelect;
+            };
+
+            on(doc, 'mouseup', stopDrag);
+            on(doc, 'mouseleave', stopDrag);
+        }
+
         function setChromeHidden(hidden) {
             if (!chrome) return;
             if (hidden === chromeHidden) return;
@@ -2638,25 +2768,43 @@
         }
 
         function initPanels() {
+            const syncSettingsState = () => {
+                const isOpen = settingsPanel.classList.contains('open') || themePicker.classList.contains('open');
+                chrome.classList.toggle('settings-open', isOpen);
+            };
+
             onClick(closeBtn, () => win.close());
 
             onClick(menuBtn, (e) => {
                 e.stopPropagation();
                 settingsPanel.classList.add('open');
                 setChromeHidden(false);
+                syncSettingsState();
             });
 
             onClick(settingsClose, () => {
                 settingsPanel.classList.remove('open');
+                syncSettingsState();
             });
 
             onClick(openThemePickerBtn, () => {
                 themePicker.classList.add('open');
                 setChromeHidden(false);
+                syncSettingsState();
             });
 
             onClick(themePickerBack, () => {
                 themePicker.classList.remove('open');
+                syncSettingsState();
+            });
+
+            bindWindowDrag(settingsHeader, '.settings-close');
+            bindWindowDrag(themePickerHeader, '.theme-picker-back');
+            bindWindowDrag(settingsDragHandle);
+            bindWindowDrag(themePickerDragHandle);
+
+            bindDragScroll(settingsContent, doc, {
+                ignoreSelector: 'button, input, select, option, textarea, label, .menu-item, .theme-btn',
             });
         }
 
@@ -2690,6 +2838,10 @@
                         themePicker.classList.remove('open');
                     }
                 }
+            });
+
+            bindDragScroll(themeGrid, doc, {
+                ignoreSelector: 'button, input, select, option, textarea, label, .theme-item',
             });
         }
 
@@ -2824,6 +2976,13 @@
             updatePipLikeState();
         }
 
+        const lyricsDrag = {
+            active: false,
+            moved: false,
+            startY: 0,
+            startScroll: 0,
+        };
+
         function initSliders() {
             on(fontSlider, 'input', (e) => {
                 fontSize = parseInt(e.target.value);
@@ -2856,7 +3015,34 @@
                 }
             });
 
-            onClick(lyricsContainer, (e) => {
+            on(lyricsContainer, 'mousedown', (e) => {
+                if (e.button !== 0) return;
+                lyricsDrag.active = true;
+                lyricsDrag.moved = false;
+                lyricsDrag.startY = e.clientY;
+                lyricsDrag.startScroll = lyricsContainer.scrollTop;
+            });
+
+            on(doc, 'mousemove', (e) => {
+                if (!lyricsDrag.active) return;
+                const delta = e.clientY - lyricsDrag.startY;
+                if (Math.abs(delta) > 3) lyricsDrag.moved = true;
+                lyricsContainer.scrollTop = lyricsDrag.startScroll - delta;
+            });
+
+            const endLyricsDrag = () => {
+                if (!lyricsDrag.active) return;
+                lyricsDrag.active = false;
+                setTimeout(() => {
+                    lyricsDrag.moved = false;
+                }, 0);
+            };
+
+            on(doc, 'mouseup', endLyricsDrag);
+            on(lyricsContainer, 'mouseleave', endLyricsDrag);
+
+            on(lyricsContainer, 'click', (e) => {
+                if (lyricsDrag.moved) return;
                 if (e.target.classList.contains('lyric')) {
                     const time = e.target.dataset.time;
                     if (time) Spicetify.Player.seek(parseInt(time));

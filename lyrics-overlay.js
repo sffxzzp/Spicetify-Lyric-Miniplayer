@@ -15,6 +15,7 @@
         pipHeight: 360,
         updateInterval: 100,
         fetchTimeoutMs: 8000,
+        lyricsLoadTimeoutMs: 20000,
         defaultFontSize: 14,
         maxFontSize: 28,
         minFontSize: 10,
@@ -259,6 +260,8 @@
             languageChineseTraditional: 'Chinese (Traditional)',
             dragResize: 'Drag to resize',
             dragMove: 'Drag to move window',
+            openSpotify: 'Open Spotify UI',
+            reloadMini: 'Reload mini-player',
             close: 'Close',
             shuffle: 'Shuffle',
             previous: 'Previous',
@@ -304,6 +307,8 @@
             languageChineseTraditional: '繁体中文',
             dragResize: '拖拽调整大小',
             dragMove: '拖拽移动窗口',
+            openSpotify: '打开 Spotify 主界面',
+            reloadMini: '重新加载迷你播放器',
             close: '关闭',
             shuffle: '随机播放',
             previous: '上一首',
@@ -349,6 +354,8 @@
             languageChineseTraditional: '繁體中文',
             dragResize: '拖曳調整大小',
             dragMove: '拖曳移動視窗',
+            openSpotify: '開啟 Spotify 主介面',
+            reloadMini: '重新載入迷你播放器',
             close: '關閉',
             shuffle: '隨機播放',
             previous: '上一首',
@@ -590,6 +597,9 @@
     const REPEAT_PENDING_MS = 1000;
     let lyricsStatus = null;
     let spinnerActive = false;
+    let spinnerRafId = null;
+    let spinnerAngle = 0;
+    let spinnerLastTime = 0;
     let initialScrollPending = false;
     let lyricsRequestId = 0;
     let currentLyricsFilteredLines = [];
@@ -602,6 +612,8 @@
     let lastVolume = null;
     let lastProgressSecond = null;
     let lastProgressRatio = null;
+    let isProgressDragging = false;
+    let dragProgressRatio = 0;
 
     // Load saved settings
     try {
@@ -818,7 +830,8 @@
             app-region: no-drag;
         }
 
-        .menu-btn {
+        .menu-btn,
+        .header-btn {
             display: flex;
             flex-direction: column;
             gap: 1px;
@@ -830,13 +843,15 @@
             border: none;
         }
 
-        .menu-btn svg {
+        .menu-btn svg,
+        .header-btn svg {
             width: 12px;
             height: 12px;
             fill: currentColor;
         }
 
-        .menu-btn:hover {
+        .menu-btn:hover,
+        .header-btn:hover {
             opacity: var(--menu-btn-hover-opacity);
         }
 
@@ -943,7 +958,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 6px 10px;
             border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
             position: sticky;
@@ -956,7 +971,7 @@
         .settings-drag-handle {
             position: sticky;
             top: 0;
-            height: 10px;
+            height: 6px;
             cursor: default;
             z-index: 3;
         }
@@ -972,7 +987,7 @@
         }
 
         .settings-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text);
         }
@@ -1181,7 +1196,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 10px;
+            padding: 6px 10px;
             border-bottom: 1px solid var(--border-strong);
             flex-shrink: 0;
             position: sticky;
@@ -1193,7 +1208,7 @@
         .theme-drag-handle {
             position: sticky;
             top: 0;
-            height: 10px;
+            height: 6px;
             cursor: default;
             z-index: 3;
         }
@@ -1582,7 +1597,7 @@
             border: 3px solid var(--surface-2);
             border-top-color: var(--accent);
             border-radius: 50%;
-            animation: none;
+            animation: spin 0.7s linear infinite;
             transform-origin: 50% 50%;
             will-change: transform;
         }
@@ -1640,7 +1655,7 @@
             flex: 1;
             background: var(--surface-2);
             border-radius: 999px;
-            cursor: default;
+            cursor: pointer;
         }
 
         .progress-fill {
@@ -1651,6 +1666,19 @@
             width: 0%;
             background: var(--accent);
             border-radius: 999px;
+        }
+
+        .progress-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 1px var(--surface-2);
+            pointer-events: none;
         }
 
         /* Footer */
@@ -1778,7 +1806,7 @@
 
         const lines = [];
         let hasTime = false;
-        const timeTag = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+        const timeTag = /\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
         const metaTag = /^\s*\[(ti|ar|al|by|offset):/i;
 
         for (const rawLine of lrcText.split(/\r?\n/)) {
@@ -1796,15 +1824,16 @@
 
             hasTime = true;
             for (const match of matches) {
-                const min = parseInt(match[1], 10);
-                const sec = parseInt(match[2], 10);
-                const frac = match[3] || '0';
+                const hour = match[1] ? parseInt(match[1], 10) : 0;
+                const min = parseInt(match[2], 10);
+                const sec = parseInt(match[3], 10);
+                const frac = match[4] || '0';
                 let ms = 0;
                 if (frac.length === 1) ms = parseInt(frac, 10) * 100;
                 else if (frac.length === 2) ms = parseInt(frac, 10) * 10;
                 else ms = parseInt(frac.slice(0, 3), 10);
 
-                const startTime = (min * 60 + sec) * 1000 + ms;
+                const startTime = (hour * 3600 + min * 60 + sec) * 1000 + ms;
                 lines.push({ startTime, text });
             }
         }
@@ -1895,6 +1924,22 @@
             return await fetch(url, { ...rest, signal: controller.signal });
         } finally {
             clearTimeout(timer);
+        }
+    }
+
+    async function withTimeout(promise, timeoutMs = CONFIG.fetchTimeoutMs) {
+        let timer;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise(resolve => {
+                    timer = setTimeout(() => resolve(null), timeoutMs);
+                })
+            ]);
+        } catch (e) {
+            return null;
+        } finally {
+            if (timer) clearTimeout(timer);
         }
     }
 
@@ -2123,8 +2168,10 @@
             
             // Method 1: Color Lyrics API
             try {
-                const response = await Spicetify.CosmosAsync.get(
-                    `https://spclient.wg.spotify.com/color-lyrics/v2/track/${trackId}?format=json&market=from_token`
+                const response = await withTimeout(
+                    Spicetify.CosmosAsync.get(
+                        `https://spclient.wg.spotify.com/color-lyrics/v2/track/${trackId}?format=json&market=from_token`
+                    )
                 );
                 if (response?.lyrics?.lines) {
                     return {
@@ -2140,7 +2187,7 @@
             // Method 2: Platform Lyrics API
             if (Spicetify.Platform?.Lyrics) {
                 try {
-                    const lyrics = await Spicetify.Platform.Lyrics.getLyrics(trackUri);
+                    const lyrics = await withTimeout(Spicetify.Platform.Lyrics.getLyrics(trackUri));
                     if (lyrics?.lines) {
                         return {
                             synced: true,
@@ -2306,6 +2353,8 @@
         back: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.9 3.3a.75.75 0 0 1 1.06 0l.53.53-2.6 2.6H13a.75.75 0 0 1 0 1.5H5.89l2.6 2.6-.53.53a.75.75 0 1 1-1.06-1.06L2.5 8l4.4-4.7z"/></svg>`,
         chevron: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L9.44 8 6 4.56a.75.75 0 0 1 0-1.06z"/></svg>`,
         menu: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5z"/></svg>`,
+        openApp: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.75A1.75 1.75 0 0 1 3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5z"/><path d="M9 2.75A.75.75 0 0 1 9.75 2h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0V4.56l-4.72 4.72a.75.75 0 1 1-1.06-1.06L11.44 3.5H9.75A.75.75 0 0 1 9 2.75z"/></svg>`,
+        reload: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 0 1 9.52-3.78l.23.24V3a.75.75 0 0 1 1.5 0v3.75a.75.75 0 0 1-.75.75H9.25a.75.75 0 0 1 0-1.5h2.01l-.45-.48a4 4 0 1 0 1 3.05.75.75 0 0 1 1.5 0A5.5 5.5 0 0 1 2.5 8z"/></svg>`,
     };
 
     function setupPipWindow(win) {
@@ -2336,6 +2385,12 @@
             <div class="header-btns">
                 <button class="menu-btn" id="menuBtn" title="${t('settings')}" aria-label="${t('settings')}" aria-expanded="false">
                     ${ICONS.menu}
+                </button>
+                <button class="header-btn" id="openSpotifyBtn" title="${t('openSpotify')}" aria-label="${t('openSpotify')}">
+                    ${ICONS.openApp}
+                </button>
+                <button class="header-btn" id="reloadMiniBtn" title="${t('reloadMini')}" aria-label="${t('reloadMini')}">
+                    ${ICONS.reload}
                 </button>
                 <button class="close-btn ${hiddenClass(showCloseBtn)}" id="closeBtn" title="${t('close')}" aria-label="${t('close')}">${ICONS.close}</button>
             </div>
@@ -2429,8 +2484,9 @@
         const buildProgressRow = () => `
         <div class="progress-row ${hiddenClass(showProgressBar)}" id="progressRow">
             <span class="progress-time" id="elapsedTime">0:00</span>
-            <div class="progress-bar" id="progressBar" aria-label="${t('progressBar')}">
+            <div class="progress-bar" id="progressBar" aria-label="${t('progressBar')}" role="slider" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
                 <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-thumb" id="progressThumb"></div>
             </div>
             <span class="progress-time" id="totalTime">0:00</span>
         </div>
@@ -2498,6 +2554,8 @@
             doc,
             ...withIds(doc, [
                 'menuBtn',
+                'openSpotifyBtn',
+                'reloadMiniBtn',
                 'settingsPanel',
                 'settingsDragHandle',
                 'settingsHeader',
@@ -2538,6 +2596,7 @@
                 'progressRow',
                 'progressBar',
                 'progressFill',
+                'progressThumb',
                 'elapsedTime',
                 'totalTime',
                 'lyricsContainer',
@@ -2591,6 +2650,8 @@
 
         const {
             menuBtn,
+            openSpotifyBtn,
+            reloadMiniBtn,
             settingsPanel,
             settingsDragHandle,
             settingsHeader,
@@ -2630,6 +2691,7 @@
             progressRow,
             progressBar,
             progressFill,
+            progressThumb,
             elapsedTime,
             totalTime,
             lyricsContainer,
@@ -2716,6 +2778,8 @@
 
             const titleBindings = [
                 [menuBtn, 'settings'],
+                [openSpotifyBtn, 'openSpotify'],
+                [reloadMiniBtn, 'reloadMini'],
                 [settingsClose, 'close'],
                 [closeBtn, 'close'],
                 [resizeHandle, 'dragResize'],
@@ -2734,6 +2798,8 @@
             });
 
             if (menuBtn) menuBtn.setAttribute('aria-label', t('settings'));
+            if (openSpotifyBtn) openSpotifyBtn.setAttribute('aria-label', t('openSpotify'));
+            if (reloadMiniBtn) reloadMiniBtn.setAttribute('aria-label', t('reloadMini'));
             if (settingsClose) settingsClose.setAttribute('aria-label', t('close'));
             if (closeBtn) closeBtn.setAttribute('aria-label', t('close'));
             if (resizeHandle) resizeHandle.setAttribute('aria-label', t('dragResize'));
@@ -2870,6 +2936,26 @@
                 e.stopPropagation();
                 setChromeHidden(false);
                 setPanelState({ settingsOpen: true, themeOpen: themePicker?.classList.contains('open') || false });
+            });
+
+            onClick(openSpotifyBtn, (e) => {
+                e.stopPropagation();
+                try {
+                    Spicetify.Platform?.History?.push('/');
+                } catch (err) {}
+                try {
+                    window.focus();
+                } catch (err) {}
+            });
+
+            onClick(reloadMiniBtn, (e) => {
+                e.stopPropagation();
+                if (pipWindow && !pipWindow.closed) {
+                    pipUi = null;
+                    setupPipWindow(pipWindow);
+                } else {
+                    openPictureInPicture();
+                }
             });
 
             onClick(settingsClose, () => {
@@ -3156,7 +3242,43 @@
             });
 
             if (progressBar) {
+                const updateProgressDrag = (e) => {
+                    const durationMs = getTrackDurationMs();
+                    if (!durationMs) return;
+                    const rect = progressBar.getBoundingClientRect();
+                    dragProgressRatio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+                    updatePipProgress();
+                    updateCurrentLyric(true, Math.round(durationMs * dragProgressRatio));
+                };
+
+                on(progressBar, 'mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    isProgressDragging = true;
+                    updateProgressDrag(e);
+                });
+
+                on(doc, 'mousemove', (e) => {
+                    if (!isProgressDragging) return;
+                    updateProgressDrag(e);
+                });
+
+                const endProgressDrag = (e) => {
+                    if (!isProgressDragging) return;
+                    isProgressDragging = false;
+                    const durationMs = getTrackDurationMs();
+                    if (durationMs) {
+                        Spicetify.Player.seek(Math.round(durationMs * dragProgressRatio));
+                    }
+                    lastProgressSecond = null;
+                    lastProgressRatio = null;
+                    updatePipProgress();
+                };
+
+                on(doc, 'mouseup', endProgressDrag);
+                on(progressBar, 'mouseleave', endProgressDrag);
+
                 onClick(progressBar, (e) => {
+                    if (isProgressDragging) return;
                     const durationMs = getTrackDurationMs();
                     if (!durationMs) return;
                     const rect = progressBar.getBoundingClientRect();
@@ -3166,7 +3288,6 @@
                     lastProgressRatio = null;
                     updatePipProgress();
                 });
-
             }
         }
 
@@ -3399,7 +3520,7 @@
 
     function updatePipProgress() {
         const ui = getPipUi();
-        if (!ui || !ui.progressFill || !ui.elapsedTime || !ui.totalTime || !ui.progressBar) return;
+        if (!ui || !ui.progressFill || !ui.progressThumb || !ui.elapsedTime || !ui.totalTime || !ui.progressBar) return;
 
         const durationMs = getTrackDurationMs();
         const progressMs = Spicetify.Player.getProgress() || 0;
@@ -3407,6 +3528,9 @@
         if (!durationMs) {
             if (lastProgressRatio !== 0) {
                 ui.progressFill.style.width = '0%';
+                ui.progressThumb.style.left = '0%';
+                ui.progressBar.setAttribute('aria-valuemax', '0');
+                ui.progressBar.setAttribute('aria-valuenow', '0');
                 lastProgressRatio = 0;
             }
             if (lastProgressSecond !== 0) {
@@ -3417,14 +3541,19 @@
             return;
         }
 
-        const ratio = Math.min(1, Math.max(0, progressMs / durationMs));
-        const second = Math.floor(progressMs / 1000);
-        if (ratio !== lastProgressRatio) {
-            ui.progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
-            lastProgressRatio = ratio;
+        const activeRatio = isProgressDragging ? dragProgressRatio : Math.min(1, Math.max(0, progressMs / durationMs));
+        const activeMs = Math.round(durationMs * activeRatio);
+        const second = Math.floor(activeMs / 1000);
+        if (activeRatio !== lastProgressRatio || isProgressDragging) {
+            const percent = (activeRatio * 100).toFixed(2);
+            ui.progressFill.style.width = `${percent}%`;
+            ui.progressThumb.style.left = `${percent}%`;
+            ui.progressBar.setAttribute('aria-valuemax', `${Math.round(durationMs / 1000)}`);
+            ui.progressBar.setAttribute('aria-valuenow', `${Math.round(activeMs / 1000)}`);
+            lastProgressRatio = activeRatio;
         }
         if (second !== lastProgressSecond) {
-            ui.elapsedTime.textContent = formatTime(progressMs);
+            ui.elapsedTime.textContent = formatTime(activeMs);
             ui.totalTime.textContent = formatTime(durationMs);
             lastProgressSecond = second;
         }
@@ -3478,13 +3607,39 @@
         spinner.classList.remove('spinning');
         void spinner.offsetWidth;
         spinner.classList.add('spinning');
+        if (spinnerRafId) return;
+        spinnerLastTime = 0;
+        const tick = (time) => {
+            if (!spinnerActive) {
+                spinnerRafId = null;
+                return;
+            }
+            if (spinnerLastTime) {
+                const delta = time - spinnerLastTime;
+                spinnerAngle = (spinnerAngle + (delta * 360) / 700) % 360;
+            }
+            spinnerLastTime = time;
+            const currentSpinner = ui.doc.querySelector('.spinner');
+            if (currentSpinner) {
+                currentSpinner.style.transform = `rotate(${spinnerAngle}deg)`;
+            }
+            spinnerRafId = requestAnimationFrame(tick);
+        };
+        spinnerRafId = requestAnimationFrame(tick);
     }
 
     function stopSpinnerAnimation() {
         spinnerActive = false;
+        if (spinnerRafId) {
+            cancelAnimationFrame(spinnerRafId);
+            spinnerRafId = null;
+        }
         const ui = getPipUi();
         const spinner = ui?.doc?.querySelector('.spinner');
-        if (spinner) spinner.classList.remove('spinning');
+        if (spinner) {
+            spinner.classList.remove('spinning');
+            spinner.style.transform = '';
+        }
     }
 
     async function loadLyrics(uri) {
@@ -3496,6 +3651,12 @@
         // Show loading
         setLyricsStatus('loading');
         await yieldToUi();
+
+        const timeoutId = requestId;
+        setTimeout(() => {
+            if (timeoutId !== lyricsRequestId) return;
+            if (lyricsStatus === 'loading') setLyricsStatus('no-lyrics');
+        }, CONFIG.lyricsLoadTimeoutMs);
 
         // Fetch lyrics
         const lyrics = await fetchLyrics(uri);
@@ -3528,11 +3689,11 @@
         updateCurrentLyric(true);
     }
 
-    function updateCurrentLyric(forceScroll = false) {
+    function updateCurrentLyric(forceScroll = false, overrideTimeMs = null) {
         const ui = getPipUi();
         if (!ui || !currentLyrics?.synced) return;
 
-        const currentTime = Spicetify.Player.getProgress();
+        const currentTime = overrideTimeMs ?? Spicetify.Player.getProgress();
         const lines = currentLyricsFilteredLines;
         const lyrics = currentLyricElements;
         if (!lines || !lyrics?.length) return;
@@ -3576,7 +3737,7 @@
             const scrollIdx = activeIdx >= 0 ? activeIdx : 0;
             const target = lyrics[scrollIdx];
             if (target) {
-                target.scrollIntoView({ behavior: isPlaying ? 'smooth' : 'auto', block: 'center' });
+                target.scrollIntoView({ behavior: isPlaying || forceScroll ? 'smooth' : 'auto', block: 'center' });
                 initialScrollPending = false;
             }
         }

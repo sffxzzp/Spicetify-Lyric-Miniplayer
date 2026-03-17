@@ -14,6 +14,7 @@
         pipWidth: 280,
         pipHeight: 360,
         updateInterval: 100,
+        fetchTimeoutMs: 8000,
         defaultFontSize: 14,
         maxFontSize: 28,
         minFontSize: 10,
@@ -453,6 +454,17 @@
     function setToggleState(toggle, on) {
         if (!toggle) return;
         toggle.classList.toggle('on', on);
+        toggle.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+
+    function setAriaExpanded(el, expanded) {
+        if (!el) return;
+        el.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    function setAriaHidden(el, hidden) {
+        if (!el) return;
+        el.setAttribute('aria-hidden', hidden ? 'true' : 'false');
     }
 
     function bindToggle({ item, toggle, get, set, apply, storageKey }) {
@@ -577,10 +589,19 @@
     let pendingRepeatAt = 0;
     const REPEAT_PENDING_MS = 1000;
     let lyricsStatus = null;
-    let spinnerAnimId = null;
-    let spinnerAngle = 0;
     let spinnerActive = false;
     let initialScrollPending = false;
+    let lyricsRequestId = 0;
+    let currentLyricsFilteredLines = [];
+    let currentLyricElements = [];
+    let lastActiveLyricIndex = -1;
+    let lastIsPlaying = null;
+    let lastShuffle = null;
+    let lastRepeatMode = null;
+    let lastIsLiked = null;
+    let lastVolume = null;
+    let lastProgressSecond = null;
+    let lastProgressRatio = null;
 
     // Load saved settings
     try {
@@ -746,7 +767,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            cursor: ns-resize;
+            cursor: default;
             z-index: 3;
             -webkit-app-region: drag !important;
             app-region: drag !important;
@@ -767,14 +788,10 @@
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
-            cursor: grab;
+            cursor: default;
             user-select: none;
             -webkit-app-region: drag !important;
             app-region: drag !important;
-        }
-
-        .header:active {
-            cursor: grabbing;
         }
 
         .track-info {
@@ -813,6 +830,12 @@
             border: none;
         }
 
+        .menu-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
+        }
+
         .menu-btn:hover {
             opacity: var(--menu-btn-hover-opacity);
         }
@@ -838,6 +861,15 @@
             padding: 2px 4px;
             transition: all 0.15s;
             line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
         }
 
         .close-btn:hover {
@@ -960,6 +992,12 @@
             transition: background 0.15s;
             -webkit-app-region: no-drag !important;
             app-region: no-drag !important;
+        }
+
+        .settings-close svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
         }
 
         .settings-close:hover {
@@ -1091,7 +1129,15 @@
 
         .theme-btn-arrow {
             color: var(--text-dim);
-            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-btn-arrow svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
         }
 
         /* Theme Picker Panel */
@@ -1165,6 +1211,12 @@
             align-items: center;
             justify-content: center;
             transition: background 0.15s;
+        }
+
+        .theme-picker-back svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
         }
 
         .theme-picker-back:hover {
@@ -1530,9 +1582,13 @@
             border: 3px solid var(--surface-2);
             border-top-color: var(--accent);
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
+            animation: none;
             transform-origin: 50% 50%;
             will-change: transform;
+        }
+
+        .spinner.spinning {
+            animation: spin 0.7s linear infinite;
         }
 
         @-webkit-keyframes spin {
@@ -1584,7 +1640,7 @@
             flex: 1;
             background: var(--surface-2);
             border-radius: 999px;
-            cursor: pointer;
+            cursor: default;
         }
 
         .progress-fill {
@@ -1666,7 +1722,7 @@
             height: 10px;
             background: var(--accent);
             border-radius: 50%;
-            cursor: pointer;
+            cursor: default;
             transition: transform 0.1s;
         }
 
@@ -1679,7 +1735,7 @@
             height: 14px;
             fill: var(--icon-muted);
             flex-shrink: 0;
-            cursor: pointer;
+            cursor: default;
             transition: fill 0.15s;
         }
 
@@ -1831,6 +1887,17 @@
         });
     }
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = CONFIG.fetchTimeoutMs) {
+        const controller = new AbortController();
+        const { signal: _signal, ...rest } = options || {};
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...rest, signal: controller.signal });
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
     async function fetchLrcCxLyrics(meta) {
         if (!meta || (!meta.title && !meta.artist && !meta.album)) return null;
 
@@ -1843,7 +1910,7 @@
 
         try {
             const advanceUrl = `${FALLBACK_LYRICS_APIS.lrcCxBase}/advance?${query}`;
-            const advanceResp = await fetch(advanceUrl);
+            const advanceResp = await fetchWithTimeout(advanceUrl);
             if (advanceResp.ok) {
                 const data = await advanceResp.json();
                 if (Array.isArray(data)) {
@@ -1858,7 +1925,7 @@
 
         try {
             const singleUrl = `${FALLBACK_LYRICS_APIS.lrcCxBase}/single?${query}`;
-            const singleResp = await fetch(singleUrl);
+            const singleResp = await fetchWithTimeout(singleUrl);
             if (singleResp.ok) {
                 const text = await singleResp.text();
                 const parsed = parseLrcToLyrics(text);
@@ -1883,7 +1950,7 @@
 
         try {
             const url = `${FALLBACK_LYRICS_APIS.moreLyricsBase}/get?${query}`;
-            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const resp = await fetchWithTimeout(url, { headers: { 'Accept': 'application/json' } });
             if (!resp.ok) return null;
             const data = await resp.json();
             return mapMoreLyricsResult(data);
@@ -1902,7 +1969,7 @@
 
         try {
             const searchUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/tencent/search/song?${searchParams.toString()}`;
-            const searchResp = await fetch(searchUrl);
+            const searchResp = await fetchWithTimeout(searchUrl);
             if (!searchResp.ok) return null;
             const searchJson = await searchResp.json();
             const list = Array.isArray(searchJson?.data) ? searchJson.data : [];
@@ -1918,7 +1985,7 @@
             if (!lyricParams.toString()) return null;
 
             const lyricUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/tencent/lyric?${lyricParams.toString()}`;
-            const lyricResp = await fetch(lyricUrl);
+            const lyricResp = await fetchWithTimeout(lyricUrl);
             if (!lyricResp.ok) return null;
             const lyricJson = await lyricResp.json();
             const lrc = lyricJson?.data?.lrc;
@@ -1938,7 +2005,7 @@
 
         try {
             const searchUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/netease?${searchParams.toString()}`;
-            const searchResp = await fetch(searchUrl);
+            const searchResp = await fetchWithTimeout(searchUrl);
             if (!searchResp.ok) return null;
             const searchJson = await searchResp.json();
             const id = searchJson?.data?.id;
@@ -1947,7 +2014,7 @@
             const lyricUrl = `${FALLBACK_LYRICS_APIS.vkeysBase}/v2/music/netease/lyric?id=${encodeURIComponent(
                 id
             )}`;
-            const lyricResp = await fetch(lyricUrl);
+            const lyricResp = await fetchWithTimeout(lyricUrl);
             if (!lyricResp.ok) return null;
             const lyricJson = await lyricResp.json();
             const lrc = lyricJson?.data?.lrc;
@@ -1969,7 +2036,7 @@
 
         try {
             const searchUrl = `${FALLBACK_LYRICS_APIS.neteaseOfficialBase}/search/get?${searchParams.toString()}`;
-            const searchResp = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
+            const searchResp = await fetchWithTimeout(searchUrl, { headers: { 'Accept': 'application/json' } });
             if (!searchResp.ok) return null;
             const searchJson = await searchResp.json();
             const songs = searchJson?.result?.songs;
@@ -1980,7 +2047,7 @@
             const lyricUrl = `${FALLBACK_LYRICS_APIS.neteaseOfficialBase}/song/lyric?os=pc&id=${encodeURIComponent(
                 id
             )}&lv=-1&tv=-1`;
-            const lyricResp = await fetch(lyricUrl, { headers: { 'Accept': 'application/json' } });
+            const lyricResp = await fetchWithTimeout(lyricUrl, { headers: { 'Accept': 'application/json' } });
             if (!lyricResp.ok) return null;
             const lyricJson = await lyricResp.json();
             const lrc = lyricJson?.lrc?.lyric || lyricJson?.lrc;
@@ -2021,7 +2088,7 @@
 
         try {
             const searchUrl = `${FALLBACK_LYRICS_APIS.qq1Base}?${searchParams.toString()}`;
-            const searchResp = await fetch(searchUrl);
+            const searchResp = await fetchWithTimeout(searchUrl);
             if (!searchResp.ok) return null;
             const searchJson = await searchResp.json();
 
@@ -2036,7 +2103,7 @@
                 lyricParams.set('type', 'json');
 
                 const lyricUrl = `${FALLBACK_LYRICS_APIS.qq1Base}?${lyricParams.toString()}`;
-                const lyricResp = await fetch(lyricUrl);
+                const lyricResp = await fetchWithTimeout(lyricUrl);
                 if (!lyricResp.ok) return null;
                 const lyricJson = await lyricResp.json();
                 const lrc = extractQq1Lyrics(lyricJson?.data);
@@ -2209,7 +2276,7 @@
     }
 
     function generateThemeMenuItems() {
-        return Object.entries(THEMES).map(([key, theme]) => 
+        return Object.entries(THEMES).map(([key, theme]) =>
             `<div class="theme-item ${key === currentTheme ? 'active' : ''}" data-theme="${key}">
                 <span class="theme-swatch" style="background: ${theme.bg};">
                     <span class="theme-swatch-light" style="background: ${theme.lightBg || theme.bg};"></span>
@@ -2235,6 +2302,10 @@
         next: `<svg viewBox="0 0 16 16"><path d="M12.7 1a.7.7 0 0 0-.7.7v5.15L2.05 1.107A.7.7 0 0 0 1 1.712v12.575a.7.7 0 0 0 1.05.607L12 9.149V14.3a.7.7 0 0 0 .7.7h1.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-1.6z"/></svg>`,
         repeat: `<svg viewBox="0 0 16 16" id="repeatIcon"><path d="M11.17 3.5H5.5A2.5 2.5 0 0 0 3 6v1.25a.75.75 0 0 1-1.5 0V6A4 4 0 0 1 5.5 2h5.67l-.9-.9a.75.75 0 1 1 1.06-1.06l2.18 2.18a.75.75 0 0 1 0 1.06l-2.18 2.18a.75.75 0 1 1-1.06-1.06l.9-.9zM4.83 12.5H10.5A2.5 2.5 0 0 0 13 10V8.75a.75.75 0 0 1 1.5 0V10a4 4 0 0 1-4 4H4.83l.9.9a.75.75 0 1 1-1.06 1.06L2.5 13.78a.75.75 0 0 1 0-1.06l2.18-2.18a.75.75 0 1 1 1.06 1.06l-.9.9z"/></svg>`,
         like: `<svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>`,
+        close: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 0 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06z"/></svg>`,
+        back: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.9 3.3a.75.75 0 0 1 1.06 0l.53.53-2.6 2.6H13a.75.75 0 0 1 0 1.5H5.89l2.6 2.6-.53.53a.75.75 0 1 1-1.06-1.06L2.5 8l4.4-4.7z"/></svg>`,
+        chevron: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L9.44 8 6 4.56a.75.75 0 0 1 0-1.06z"/></svg>`,
+        menu: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5z"/></svg>`,
     };
 
     function setupPipWindow(win) {
@@ -2244,64 +2315,53 @@
         const hiddenClass = (visible) => (visible ? '' : 'hidden');
         const collapsedClass = (expanded) => (expanded ? '' : 'collapsed');
         const toggleItem = (itemId, labelId, labelKey, toggleId, isOn) => `
-            <div class="menu-item" id="${itemId}">
+            <div class="menu-item" id="${itemId}" aria-label="${t(labelKey)}">
                 <span class="menu-item-label" id="${labelId}">${t(labelKey)}</span>
-                <div class="menu-toggle ${isOn ? 'on' : ''}" id="${toggleId}"></div>
+                <div class="menu-toggle ${isOn ? 'on' : ''}" id="${toggleId}" role="switch" aria-checked="${isOn ? 'true' : 'false'}"></div>
             </div>
         `;
         const controlButton = (id, titleKey, svg, extraClass = '') => `
-            <button class="ctrl-btn ${extraClass}" id="${id}" title="${t(titleKey)}">
+            <button class="ctrl-btn ${extraClass}" id="${id}" title="${t(titleKey)}" aria-label="${t(titleKey)}">
                 ${svg}
             </button>
         `;
 
 
         const buildHeader = () => `
-        <div class="resize-handle" id="resizeHandle" title="${t('dragResize')}"></div>
-        <div class="header" id="dragHeader" title="${t('dragMove')}">
+        <div class="resize-handle" id="resizeHandle" title="${t('dragResize')}" aria-label="${t('dragResize')}"></div>
+        <div class="header" id="dragHeader" title="${t('dragMove')}" aria-label="${t('dragMove')}">
             <div class="track-info">
                 <div class="track-line" id="trackLine" data-loading="true">${t('loading')}</div>
             </div>
             <div class="header-btns">
-                <button class="menu-btn" id="menuBtn" title="${t('settings')}">
-                    <div class="menu-row">
-                        <div class="menu-dot"></div>
-                        <div class="menu-dot"></div>
-                    </div>
-                    <div class="menu-row">
-                        <div class="menu-dot"></div>
-                        <div class="menu-dot"></div>
-                    </div>
-                    <div class="menu-row">
-                        <div class="menu-dot"></div>
-                        <div class="menu-dot"></div>
-                    </div>
+                <button class="menu-btn" id="menuBtn" title="${t('settings')}" aria-label="${t('settings')}" aria-expanded="false">
+                    ${ICONS.menu}
                 </button>
-                <button class="close-btn ${hiddenClass(showCloseBtn)}" id="closeBtn" title="${t('close')}">x</button>
+                <button class="close-btn ${hiddenClass(showCloseBtn)}" id="closeBtn" title="${t('close')}" aria-label="${t('close')}">${ICONS.close}</button>
             </div>
         </div>
         `;
 
         const buildSettingsPanel = () => `
-        <div class="settings-panel" id="settingsPanel">
+        <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="${t('settings')}" aria-hidden="true">
             <div class="settings-drag-handle" id="settingsDragHandle"></div>
             <div class="settings-header" id="settingsHeader">
                 <span class="settings-title" id="settingsTitle">${t('settings')}</span>
-                <button class="settings-close" id="settingsClose" title="${t('close')}">x</button>
+                <button class="settings-close" id="settingsClose" title="${t('close')}" aria-label="${t('close')}">${ICONS.close}</button>
             </div>
             <div class="settings-content">
-                <button class="theme-btn" id="openThemePicker" title="${t('chooseTheme')}">
+                <button class="theme-btn" id="openThemePicker" title="${t('chooseTheme')}" aria-label="${t('chooseTheme')}">
                     <div class="theme-btn-info">
                         <div class="theme-btn-label" id="themeBtnLabel">${t('theme')}</div>
                         <div class="theme-btn-name" id="currentThemeName">${THEMES[currentTheme].name}</div>
                     </div>
-                    <span class="theme-btn-arrow">></span>
+                    <span class="theme-btn-arrow">${ICONS.chevron}</span>
                 </button>
-                
+
                 <div class="menu-section-title" id="generalTitle">${t('general')}</div>
                 <div class="menu-item menu-item-select" id="languageItem">
                     <span class="menu-item-label" id="languageLabel">${t('language')}</span>
-                    <select class="menu-select" id="languageSelect">
+                    <select class="menu-select" id="languageSelect" aria-label="${t('language')}">
                         ${generateLanguageOptions()}
                     </select>
                 </div>
@@ -2309,18 +2369,18 @@
                 <div class="menu-divider"></div>
 
                 <div class="menu-section-title" id="appearanceTitle">${t('appearance')}</div>
-                <div class="menu-item" id="toggleModeItem">
+                <div class="menu-item" id="toggleModeItem" aria-label="${t('lightMode')}">
                     <span class="menu-item-label" id="toggleModeLabel">${t('lightMode')}</span>
-                    <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode"></div>
+                    <div class="menu-toggle ${colorMode === 'light' ? 'on' : ''}" id="toggleMode" role="switch" aria-checked="${colorMode === 'light' ? 'true' : 'false'}"></div>
                 </div>
                 <div class="menu-item" id="idleDelayItem">
                     <span class="menu-item-label" id="idleDelayLabel">${t('idleFade')}</span>
                     <div class="idle-row">
-                        <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}">
+                        <input type="range" class="slider" id="idleDelaySlider" min="500" max="10000" step="250" value="${idleDelayMs}" aria-label="${t('idleFade')}">
                         <span class="value-display" id="idleDelayValue">${(idleDelayMs / 1000).toFixed(1)}s</span>
                     </div>
                 </div>
-                
+
                 <div class="menu-section-title" id="displayTitle">${t('display')}</div>
                 ${toggleItem('toggleLyricsItem', 'toggleLyricsLabel', 'showLyrics', 'toggleLyrics', showLyrics)}
                 ${toggleItem('toggleCenterItem', 'toggleCenterLabel', 'centerLyrics', 'toggleCenter', centerLyrics)}
@@ -2337,10 +2397,10 @@
         `;
 
         const buildThemePicker = () => `
-        <div class="theme-picker" id="themePicker">
+        <div class="theme-picker" id="themePicker" role="dialog" aria-label="${t('chooseTheme')}" aria-hidden="true">
             <div class="theme-drag-handle" id="themePickerDragHandle"></div>
             <div class="theme-picker-header" id="themePickerHeader">
-                <button class="theme-picker-back" id="themePickerBack" title="${t('back')}"><</button>
+                <button class="theme-picker-back" id="themePickerBack" title="${t('back')}" aria-label="${t('back')}">${ICONS.back}</button>
                 <span class="theme-picker-title" id="themePickerTitle">${t('chooseTheme')}</span>
             </div>
             <div class="theme-grid" id="themeGrid">
@@ -2353,14 +2413,14 @@
         <div class="footer" id="footer">
             <div class="footer-row ${collapsedClass(showFontSlider)}" id="fontRow">
                 <span class="control-label" id="fontSizeLabel">${t('sizeLabel')}</span>
-                <input type="range" class="slider" id="fontSlider" min="${CONFIG.minFontSize}" max="${CONFIG.maxFontSize}" value="${fontSize}">
+                <input type="range" class="slider" id="fontSlider" min="${CONFIG.minFontSize}" max="${CONFIG.maxFontSize}" value="${fontSize}" aria-label="${t('fontSizeSlider')}">
                 <span class="value-display" id="fontValue">${fontSize}px</span>
             </div>
             <div class="footer-row ${collapsedClass(showVolumeSlider)}" id="volumeRow">
-                <div id="volumeIconWrap">
+                <div id="volumeIconWrap" aria-label="${t('volumeSlider')}">
                     ${getVolumeIconSvg(currentVolume)}
                 </div>
-                <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="${currentVolume}">
+                <input type="range" class="slider" id="volumeSlider" min="0" max="100" value="${currentVolume}" aria-label="${t('volumeSlider')}">
                 <span class="value-display" id="volumePercent">${currentVolume}%</span>
             </div>
         </div>
@@ -2369,7 +2429,7 @@
         const buildProgressRow = () => `
         <div class="progress-row ${hiddenClass(showProgressBar)}" id="progressRow">
             <span class="progress-time" id="elapsedTime">0:00</span>
-            <div class="progress-bar" id="progressBar">
+            <div class="progress-bar" id="progressBar" aria-label="${t('progressBar')}">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
             <span class="progress-time" id="totalTime">0:00</span>
@@ -2401,7 +2461,7 @@
     <style id="themeStyles">${generateStyles(currentTheme, colorMode)}</style>
 </head>
 <body data-color-mode="${colorMode}">
-    <div class="lyrics-wrap ${showLyrics ? '' : 'collapsed'} ${centerLyrics ? 'centered' : ''}" id="lyricsContainer">
+    <div class="lyrics-wrap ${showLyrics ? '' : 'collapsed'} ${centerLyrics ? 'centered' : ''}" id="lyricsContainer" role="list">
         <div class="status-msg">
             <div class="spinner"></div>
         </div>
@@ -2523,6 +2583,7 @@
             ]),
             controls: doc.querySelector('.controls'),
             settingsContent: doc.querySelector('.settings-content'),
+            menuItems: Array.from(doc.querySelectorAll('.menu-item')),
             win,
         };
 
@@ -2612,6 +2673,7 @@
             chrome,
             trackLine,
             settingsContent,
+            menuItems,
         } = ui;
         let idleTimer = null;
 
@@ -2670,6 +2732,27 @@
             titleBindings.forEach(([el, key]) => {
                 if (el) el.title = t(key);
             });
+
+            if (menuBtn) menuBtn.setAttribute('aria-label', t('settings'));
+            if (settingsClose) settingsClose.setAttribute('aria-label', t('close'));
+            if (closeBtn) closeBtn.setAttribute('aria-label', t('close'));
+            if (resizeHandle) resizeHandle.setAttribute('aria-label', t('dragResize'));
+            if (dragHeader) dragHeader.setAttribute('aria-label', t('dragMove'));
+            if (openThemePickerBtn) openThemePickerBtn.setAttribute('aria-label', t('chooseTheme'));
+            if (themePickerBack) themePickerBack.setAttribute('aria-label', t('back'));
+            if (shuffleBtn) shuffleBtn.setAttribute('aria-label', t('shuffle'));
+            if (prevBtn) prevBtn.setAttribute('aria-label', t('previous'));
+            if (playBtn) playBtn.setAttribute('aria-label', t('playPause'));
+            if (nextBtn) nextBtn.setAttribute('aria-label', t('next'));
+            if (likeBtn) likeBtn.setAttribute('aria-label', t('saveLiked'));
+            if (settingsPanel) settingsPanel.setAttribute('aria-label', t('settings'));
+            if (themePicker) themePicker.setAttribute('aria-label', t('chooseTheme'));
+            if (languageSelect) languageSelect.setAttribute('aria-label', t('language'));
+            if (idleDelaySlider) idleDelaySlider.setAttribute('aria-label', t('idleFade'));
+            if (progressBar) progressBar.setAttribute('aria-label', t('progressBar'));
+            if (fontSlider) fontSlider.setAttribute('aria-label', t('fontSizeSlider'));
+            if (volumeSlider) volumeSlider.setAttribute('aria-label', t('volumeSlider'));
+            if (volumeIconWrap) volumeIconWrap.setAttribute('aria-label', t('volumeSlider'));
 
             if (trackLine?.dataset?.loading === 'true') {
                 trackLine.textContent = t('loading');
@@ -2768,34 +2851,42 @@
         }
 
         function initPanels() {
-            const syncSettingsState = () => {
-                const isOpen = settingsPanel.classList.contains('open') || themePicker.classList.contains('open');
-                chrome.classList.toggle('settings-open', isOpen);
+            const setPanelState = ({ settingsOpen, themeOpen }) => {
+                if (settingsPanel) {
+                    settingsPanel.classList.toggle('open', settingsOpen);
+                    setAriaHidden(settingsPanel, !settingsOpen);
+                }
+                if (themePicker) {
+                    themePicker.classList.toggle('open', themeOpen);
+                    setAriaHidden(themePicker, !themeOpen);
+                }
+                if (menuBtn) setAriaExpanded(menuBtn, settingsOpen || themeOpen);
+                chrome.classList.toggle('settings-open', settingsOpen || themeOpen);
             };
 
             onClick(closeBtn, () => win.close());
 
             onClick(menuBtn, (e) => {
                 e.stopPropagation();
-                settingsPanel.classList.add('open');
                 setChromeHidden(false);
-                syncSettingsState();
+                setPanelState({ settingsOpen: true, themeOpen: themePicker?.classList.contains('open') || false });
             });
 
             onClick(settingsClose, () => {
-                settingsPanel.classList.remove('open');
-                syncSettingsState();
+                setPanelState({ settingsOpen: false, themeOpen: false });
+                if (menuBtn) menuBtn.focus();
             });
 
+            onClick(settingsPanel, (e) => e.stopPropagation());
+            onClick(themePicker, (e) => e.stopPropagation());
+
             onClick(openThemePickerBtn, () => {
-                themePicker.classList.add('open');
                 setChromeHidden(false);
-                syncSettingsState();
+                setPanelState({ settingsOpen: true, themeOpen: true });
             });
 
             onClick(themePickerBack, () => {
-                themePicker.classList.remove('open');
-                syncSettingsState();
+                setPanelState({ settingsOpen: true, themeOpen: false });
             });
 
             bindWindowDrag(settingsHeader, '.settings-close');
@@ -2815,29 +2906,34 @@
         }
 
         function initThemePicker() {
+            const selectTheme = (themeItem) => {
+                if (!themeItem) return;
+                const newTheme = themeItem.dataset.theme;
+                if (newTheme && THEMES[newTheme]) {
+                    currentTheme = newTheme;
+                    safeSet(STORAGE_KEYS.theme, currentTheme);
+
+                    // Update styles
+                    themeStyles.textContent = generateStyles(currentTheme, colorMode);
+
+                    // Update theme button
+                    currentThemeName.textContent = THEMES[currentTheme].name;
+
+                    // Update active state
+                    doc.querySelectorAll('.theme-item').forEach(item => {
+                        item.classList.toggle('active', item.dataset.theme === currentTheme);
+                    });
+
+                    // Close picker after selection
+                    themePicker.classList.remove('open');
+                    setAriaHidden(themePicker, true);
+                    setAriaExpanded(menuBtn, true);
+                }
+            };
+
             on(themeGrid, 'click', (e) => {
                 const themeItem = e.target.closest('.theme-item');
-                if (themeItem) {
-                    const newTheme = themeItem.dataset.theme;
-                    if (newTheme && THEMES[newTheme]) {
-                        currentTheme = newTheme;
-                        safeSet(STORAGE_KEYS.theme, currentTheme);
-
-                        // Update styles
-                        themeStyles.textContent = generateStyles(currentTheme, colorMode);
-
-                        // Update theme button
-                        currentThemeName.textContent = THEMES[currentTheme].name;
-
-                        // Update active state
-                        doc.querySelectorAll('.theme-item').forEach(item => {
-                            item.classList.toggle('active', item.dataset.theme === currentTheme);
-                        });
-
-                        // Close picker after selection
-                        themePicker.classList.remove('open');
-                    }
-                }
+                selectTheme(themeItem);
             });
 
             bindDragScroll(themeGrid, doc, {
@@ -2956,6 +3052,7 @@
             onClick(nextBtn, () => Spicetify.Player.next());
             onClick(shuffleBtn, () => {
                 Spicetify.Player.toggleShuffle();
+                lastShuffle = null;
                 updatePipShuffleState();
             });
             onClick(repeatBtn, () => {
@@ -2964,13 +3061,19 @@
                 setRepeatMode(next);
                 pendingRepeatMode = next;
                 pendingRepeatAt = Date.now();
+                lastRepeatMode = null;
                 renderRepeatButton(repeatBtn, next);
                 setTimeout(updatePipRepeatState, 120);
             });
             onClick(likeBtn, () => {
                 Spicetify.Player.toggleHeart();
+                lastIsLiked = null;
+                updatePipLikeState();
             });
 
+            lastShuffle = null;
+            lastRepeatMode = null;
+            lastIsLiked = null;
             updatePipShuffleState();
             updatePipRepeatState();
             updatePipLikeState();
@@ -2994,6 +3097,7 @@
             on(volumeSlider, 'input', (e) => {
                 const vol = parseInt(e.target.value);
                 Spicetify.Player.setVolume(vol / 100);
+                lastVolume = vol;
                 volumePercent.textContent = `${vol}%`;
                 volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
             });
@@ -3003,12 +3107,14 @@
                 if (currentVol > 0) {
                     volumeSlider.dataset.prevVolume = currentVol;
                     Spicetify.Player.setVolume(0);
+                    lastVolume = 0;
                     volumeSlider.value = 0;
                     volumePercent.textContent = '0%';
                     volumeIconWrap.innerHTML = getVolumeIconSvg(0);
                 } else {
                     const prevVol = parseInt(volumeSlider.dataset.prevVolume) || 50;
                     Spicetify.Player.setVolume(prevVol / 100);
+                    lastVolume = prevVol;
                     volumeSlider.value = prevVol;
                     volumePercent.textContent = `${prevVol}%`;
                     volumeIconWrap.innerHTML = getVolumeIconSvg(prevVol);
@@ -3056,8 +3162,11 @@
                     const rect = progressBar.getBoundingClientRect();
                     const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
                     Spicetify.Player.seek(Math.round(durationMs * ratio));
+                    lastProgressSecond = null;
+                    lastProgressRatio = null;
                     updatePipProgress();
                 });
+
             }
         }
 
@@ -3112,6 +3221,10 @@
             const track = Spicetify.Player.data?.item;
             if (track?.uri) {
                 currentTrackUri = track.uri;
+                lastIsLiked = null;
+                lastProgressSecond = null;
+                lastProgressRatio = null;
+                lastActiveLyricIndex = -1;
                 await loadLyrics(track.uri);
                 updatePipLikeState();
             } else {
@@ -3121,6 +3234,8 @@
         }
         
         updatePipContent();
+        lastProgressSecond = null;
+        lastProgressRatio = null;
         updatePipProgress();
         handleActivity();
         initialLoad();
@@ -3159,6 +3274,10 @@
         // Check if track changed
         if (track.uri !== currentTrackUri) {
             currentTrackUri = track.uri;
+            lastIsLiked = null;
+            lastProgressSecond = null;
+            lastProgressRatio = null;
+            lastActiveLyricIndex = -1;
             loadLyrics(track.uri);
             updatePipLikeState();
         }
@@ -3181,7 +3300,10 @@
     function updatePipLikeState() {
         const ui = getPipUi();
         if (!ui) return;
-        renderLikeButton(ui.doc, Spicetify.Player.getHeart());
+        const isLiked = Spicetify.Player.getHeart();
+        if (isLiked === lastIsLiked) return;
+        lastIsLiked = isLiked;
+        renderLikeButton(ui.doc, isLiked);
     }
 
     function getRepeatRawState() {
@@ -3227,18 +3349,25 @@
         repeatBtn.classList.toggle('repeat-on', mode === 'context');
         repeatBtn.classList.toggle('repeat-one', mode === 'track');
         repeatBtn.title = mode === 'track' ? t('repeatOne') : mode === 'context' ? t('repeatAll') : t('repeatOff');
+        repeatBtn.setAttribute('aria-label', repeatBtn.title);
     }
 
     function updatePipShuffleState() {
         const ui = getPipUi();
         if (!ui || !ui.shuffleBtn) return;
-        ui.shuffleBtn.classList.toggle('shuffle-on', Spicetify.Player.getShuffle());
+        const shuffle = Spicetify.Player.getShuffle();
+        if (shuffle === lastShuffle) return;
+        lastShuffle = shuffle;
+        ui.shuffleBtn.classList.toggle('shuffle-on', shuffle);
     }
 
     function updatePipRepeatState() {
         const ui = getPipUi();
         if (!ui || !ui.repeatBtn) return;
-        renderRepeatButton(ui.repeatBtn, resolveRepeatMode());
+        const mode = resolveRepeatMode();
+        if (mode === lastRepeatMode) return;
+        lastRepeatMode = mode;
+        renderRepeatButton(ui.repeatBtn, mode);
     }
 
     function updatePipPlayButton() {
@@ -3246,6 +3375,8 @@
         if (!ui || !ui.playIcon) return;
 
         const isPlaying = Spicetify.Player.isPlaying();
+        if (isPlaying === lastIsPlaying) return;
+        lastIsPlaying = isPlaying;
         ui.playIcon.innerHTML = isPlaying
             ? '<path d="M2.7 1a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7H2.7zm8 0a.7.7 0 0 0-.7.7v12.6a.7.7 0 0 0 .7.7h2.6a.7.7 0 0 0 .7-.7V1.7a.7.7 0 0 0-.7-.7h-2.6z"/>'
             : '<path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"/>';
@@ -3258,6 +3389,8 @@
         // Only update if slider is not being dragged
         if (ui.doc.activeElement !== ui.volumeSlider) {
             const vol = Math.round((Spicetify.Player.getVolume() || 0) * 100);
+            if (vol === lastVolume) return;
+            lastVolume = vol;
             ui.volumeSlider.value = vol;
             ui.volumePercent.textContent = `${vol}%`;
             ui.volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
@@ -3272,16 +3405,29 @@
         const progressMs = Spicetify.Player.getProgress() || 0;
 
         if (!durationMs) {
-            ui.progressFill.style.width = '0%';
-            ui.elapsedTime.textContent = '0:00';
-            ui.totalTime.textContent = '0:00';
+            if (lastProgressRatio !== 0) {
+                ui.progressFill.style.width = '0%';
+                lastProgressRatio = 0;
+            }
+            if (lastProgressSecond !== 0) {
+                ui.elapsedTime.textContent = '0:00';
+                ui.totalTime.textContent = '0:00';
+                lastProgressSecond = 0;
+            }
             return;
         }
 
         const ratio = Math.min(1, Math.max(0, progressMs / durationMs));
-        ui.progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
-        ui.elapsedTime.textContent = formatTime(progressMs);
-        ui.totalTime.textContent = formatTime(durationMs);
+        const second = Math.floor(progressMs / 1000);
+        if (ratio !== lastProgressRatio) {
+            ui.progressFill.style.width = `${(ratio * 100).toFixed(2)}%`;
+            lastProgressRatio = ratio;
+        }
+        if (second !== lastProgressSecond) {
+            ui.elapsedTime.textContent = formatTime(progressMs);
+            ui.totalTime.textContent = formatTime(durationMs);
+            lastProgressSecond = second;
+        }
     }
 
     function setLyricsStatus(status) {
@@ -3324,103 +3470,107 @@
     }
 
     function startSpinnerAnimation() {
-        if (spinnerActive) return;
         const ui = getPipUi();
         if (!ui) return;
         spinnerActive = true;
-        spinnerAngle = 0;
-
-        const animate = (ts) => {
-            if (!spinnerActive || !pipWindow || pipWindow.closed) {
-                spinnerAnimId = null;
-                return;
-            }
-            const spinner = ui.doc.querySelector('.spinner');
-            if (!spinner || lyricsStatus !== 'loading') {
-                spinnerAnimId = null;
-                spinnerActive = false;
-                return;
-            }
-            spinnerAngle = (spinnerAngle + 6) % 360;
-            spinner.style.transform = `rotate(${spinnerAngle}deg)`;
-            spinnerAnimId = requestAnimationFrame(animate);
-        };
-
-        spinnerAnimId = requestAnimationFrame(animate);
+        const spinner = ui.doc.querySelector('.spinner');
+        if (!spinner) return;
+        spinner.classList.remove('spinning');
+        void spinner.offsetWidth;
+        spinner.classList.add('spinning');
     }
 
     function stopSpinnerAnimation() {
         spinnerActive = false;
-        if (spinnerAnimId) cancelAnimationFrame(spinnerAnimId);
-        spinnerAnimId = null;
+        const ui = getPipUi();
+        const spinner = ui?.doc?.querySelector('.spinner');
+        if (spinner) spinner.classList.remove('spinning');
     }
 
     async function loadLyrics(uri) {
         const ui = getPipUi();
         if (!ui || !ui.lyricsContainer) return;
 
+        const requestId = ++lyricsRequestId;
+
         // Show loading
         setLyricsStatus('loading');
         await yieldToUi();
 
         // Fetch lyrics
-        currentLyrics = await fetchLyrics(uri);
+        const lyrics = await fetchLyrics(uri);
+        if (requestId !== lyricsRequestId) return;
+        currentLyrics = lyrics;
 
         if (!currentLyrics || !currentLyrics.lines?.length) {
             setLyricsStatus('no-lyrics');
             return;
         }
 
-        // Render lyrics
-        const lyricsHtml = currentLyrics.lines
-            .filter(line => line.text && line.text.trim())
-            .map((line, idx) => 
-                `<div class="lyric" data-time="${line.startTime}" data-idx="${idx}" style="font-size:${fontSize}px">${formatLyricHtml(line)}</div>`
-            ).join('');
-
-        if (!lyricsHtml) {
+        currentLyricsFilteredLines = currentLyrics.lines.filter(line => line.text && line.text.trim());
+        if (!currentLyricsFilteredLines.length) {
             setLyricsStatus('instrumental');
             return;
         }
 
+        // Render lyrics
+        const lyricsHtml = currentLyricsFilteredLines
+            .map((line, idx) =>
+                `<div class="lyric" role="listitem" data-time="${line.startTime}" data-idx="${idx}" style="font-size:${fontSize}px">${formatLyricHtml(line)}</div>`
+            ).join('');
+
         lyricsStatus = null;
         stopSpinnerAnimation();
         ui.lyricsContainer.innerHTML = lyricsHtml;
+        currentLyricElements = Array.from(ui.lyricsContainer.querySelectorAll('.lyric'));
+        lastActiveLyricIndex = -1;
         initialScrollPending = true;
+        updateCurrentLyric(true);
     }
 
     function updateCurrentLyric(forceScroll = false) {
         const ui = getPipUi();
         if (!ui || !currentLyrics?.synced) return;
 
-        const doc = ui.doc;
         const currentTime = Spicetify.Player.getProgress();
-        
+        const lines = currentLyricsFilteredLines;
+        const lyrics = currentLyricElements;
+        if (!lines || !lyrics?.length) return;
+
         // Find active line
         let activeIdx = -1;
-        const filteredLines = currentLyrics.lines.filter(l => l.text && l.text.trim());
-        
-        for (let i = filteredLines.length - 1; i >= 0; i--) {
-            if (currentTime >= filteredLines[i].startTime) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+            if (currentTime >= lines[i].startTime) {
                 activeIdx = i;
                 break;
             }
         }
 
-        // Update classes
-        const lyrics = doc.querySelectorAll('.lyric');
-        const isPlaying = Spicetify.Player.isPlaying();
-        
-        lyrics.forEach((el, idx) => {
-            el.classList.remove('active', 'past');
-            
-            if (idx === activeIdx) {
-                el.classList.add('active');
-            } else if (idx < activeIdx) {
-                el.classList.add('past');
-            }
-        });
+        if (activeIdx !== lastActiveLyricIndex) {
+            const prevIdx = lastActiveLyricIndex;
+            const prevValid = Number.isFinite(prevIdx) && prevIdx >= 0;
+            const minIdx = prevValid ? Math.min(prevIdx, activeIdx) : Math.max(0, activeIdx);
+            const maxIdx = prevValid ? Math.max(prevIdx, activeIdx) : activeIdx;
 
+            if (activeIdx < 0) {
+                for (let i = 0; i < lyrics.length; i++) {
+                    const el = lyrics[i];
+                    if (!el) continue;
+                    el.classList.remove('active', 'past');
+                }
+            } else {
+                for (let i = minIdx; i <= maxIdx; i++) {
+                    const el = lyrics[i];
+                    if (!el) continue;
+                    el.classList.toggle('active', i === activeIdx);
+                    el.classList.toggle('past', i < activeIdx);
+                }
+            }
+
+            lastActiveLyricIndex = activeIdx;
+        }
+
+        const isPlaying = Spicetify.Player.isPlaying();
         const shouldScroll = isPlaying || forceScroll || initialScrollPending;
         if (shouldScroll && lyrics.length) {
             const scrollIdx = activeIdx >= 0 ? activeIdx : 0;

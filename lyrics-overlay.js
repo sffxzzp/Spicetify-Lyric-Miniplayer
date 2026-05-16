@@ -260,7 +260,6 @@
             languageChineseTraditional: 'Chinese (Traditional)',
             dragResize: 'Drag to resize',
             dragMove: 'Drag to move window',
-            openSpotify: 'Open Spotify UI',
             reloadMini: 'Reload mini-player',
             close: 'Close',
             shuffle: 'Shuffle',
@@ -307,7 +306,6 @@
             languageChineseTraditional: '繁体中文',
             dragResize: '拖拽调整大小',
             dragMove: '拖拽移动窗口',
-            openSpotify: '打开 Spotify 主界面',
             reloadMini: '重新加载迷你播放器',
             close: '关闭',
             shuffle: '随机播放',
@@ -354,7 +352,6 @@
             languageChineseTraditional: '繁體中文',
             dragResize: '拖曳調整大小',
             dragMove: '拖曳移動視窗',
-            openSpotify: '開啟 Spotify 主介面',
             reloadMini: '重新載入迷你播放器',
             close: '關閉',
             shuffle: '隨機播放',
@@ -575,6 +572,7 @@
     // ==================== STATE ====================
     let pipWindow = null;
     let pipUi = null;
+    let pipSessionId = 0;
     let currentLyrics = null;
     let currentTrackUri = null;
     let updateIntervalId = null;
@@ -835,10 +833,15 @@
             display: flex;
             flex-direction: column;
             gap: 1px;
+            width: 18px;
+            height: 18px;
+            align-items: center;
+            justify-content: center;
             padding: 3px 3px;
             cursor: default;
             opacity: var(--menu-btn-opacity);
             transition: opacity 0.15s;
+            color: var(--text);
             background: none;
             border: none;
         }
@@ -1789,14 +1792,13 @@
         qq1Base: 'https://oiapi.net/api/QQMusicLyric',
     };
 
-    function getTrackMetadata() {
-        const item = Spicetify.Player.data?.item;
+    function getTrackMetadata(item = Spicetify.Player.data?.item) {
         if (!item) return null;
 
         const title = item.name || '';
         const artist = item.artists?.map(a => a.name).filter(Boolean).join(', ') || '';
         const album = item.album?.name || item.album?.title || '';
-        const durationMs = getTrackDurationMs();
+        const durationMs = getTrackDurationMs(item);
 
         return { title, artist, album, durationMs };
     }
@@ -2162,7 +2164,7 @@
         }
     }
 
-    async function fetchLyrics(trackUri) {
+    async function fetchLyrics(trackUri, trackMeta = getTrackMetadata()) {
         try {
             const trackId = trackUri.split(':').pop();
             
@@ -2216,7 +2218,7 @@
                 }
             } catch (e) {}
 
-            const meta = getTrackMetadata();
+            const meta = trackMeta;
 
             await yieldToUi();
             // Method 4: More Lyrics API
@@ -2353,11 +2355,21 @@
         back: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.9 3.3a.75.75 0 0 1 1.06 0l.53.53-2.6 2.6H13a.75.75 0 0 1 0 1.5H5.89l2.6 2.6-.53.53a.75.75 0 1 1-1.06-1.06L2.5 8l4.4-4.7z"/></svg>`,
         chevron: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5a.75.75 0 0 1 1.06 0l4 4a.75.75 0 0 1 0 1.06l-4 4a.75.75 0 1 1-1.06-1.06L9.44 8 6 4.56a.75.75 0 0 1 0-1.06z"/></svg>`,
         menu: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5zm0 4h12a.75.75 0 0 1 0 1.5H2a.75.75 0 1 1 0-1.5z"/></svg>`,
-        openApp: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.75A1.75 1.75 0 0 1 3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5z"/><path d="M9 2.75A.75.75 0 0 1 9.75 2h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0V4.56l-4.72 4.72a.75.75 0 1 1-1.06-1.06L11.44 3.5H9.75A.75.75 0 0 1 9 2.75z"/></svg>`,
         reload: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 0 1 9.52-3.78l.23.24V3a.75.75 0 0 1 1.5 0v3.75a.75.75 0 0 1-.75.75H9.25a.75.75 0 0 1 0-1.5h2.01l-.45-.48a4 4 0 1 0 1 3.05.75.75 0 0 1 1.5 0A5.5 5.5 0 0 1 2.5 8z"/></svg>`,
     };
 
     function setupPipWindow(win) {
+        const sessionId = ++pipSessionId;
+        pipWindow = win;
+        pipUi = null;
+        lastIsPlaying = null;
+        lastShuffle = null;
+        lastRepeatMode = null;
+        lastIsLiked = null;
+        lastVolume = null;
+        lastProgressSecond = null;
+        lastProgressRatio = null;
+
         const doc = win.document;
         const currentVolume = Math.round((Spicetify.Player.getVolume() || 0) * 100);
 
@@ -2385,9 +2397,6 @@
             <div class="header-btns">
                 <button class="menu-btn" id="menuBtn" title="${t('settings')}" aria-label="${t('settings')}" aria-expanded="false">
                     ${ICONS.menu}
-                </button>
-                <button class="header-btn" id="openSpotifyBtn" title="${t('openSpotify')}" aria-label="${t('openSpotify')}">
-                    ${ICONS.openApp}
                 </button>
                 <button class="header-btn" id="reloadMiniBtn" title="${t('reloadMini')}" aria-label="${t('reloadMini')}">
                     ${ICONS.reload}
@@ -2546,6 +2555,7 @@
             html: buildHtml,
         };
 
+        doc.open();
         doc.write(Templates.html());
         doc.close();
 
@@ -2554,7 +2564,6 @@
             doc,
             ...withIds(doc, [
                 'menuBtn',
-                'openSpotifyBtn',
                 'reloadMiniBtn',
                 'settingsPanel',
                 'settingsDragHandle',
@@ -2650,7 +2659,6 @@
 
         const {
             menuBtn,
-            openSpotifyBtn,
             reloadMiniBtn,
             settingsPanel,
             settingsDragHandle,
@@ -2778,7 +2786,6 @@
 
             const titleBindings = [
                 [menuBtn, 'settings'],
-                [openSpotifyBtn, 'openSpotify'],
                 [reloadMiniBtn, 'reloadMini'],
                 [settingsClose, 'close'],
                 [closeBtn, 'close'],
@@ -2798,7 +2805,6 @@
             });
 
             if (menuBtn) menuBtn.setAttribute('aria-label', t('settings'));
-            if (openSpotifyBtn) openSpotifyBtn.setAttribute('aria-label', t('openSpotify'));
             if (reloadMiniBtn) reloadMiniBtn.setAttribute('aria-label', t('reloadMini'));
             if (settingsClose) settingsClose.setAttribute('aria-label', t('close'));
             if (closeBtn) closeBtn.setAttribute('aria-label', t('close'));
@@ -2936,16 +2942,6 @@
                 e.stopPropagation();
                 setChromeHidden(false);
                 setPanelState({ settingsOpen: true, themeOpen: themePicker?.classList.contains('open') || false });
-            });
-
-            onClick(openSpotifyBtn, (e) => {
-                e.stopPropagation();
-                try {
-                    Spicetify.Platform?.History?.push('/');
-                } catch (err) {}
-                try {
-                    window.focus();
-                } catch (err) {}
             });
 
             onClick(reloadMiniBtn, (e) => {
@@ -3134,7 +3130,11 @@
 
         function initControls() {
             onClick(prevBtn, () => Spicetify.Player.back());
-            onClick(playBtn, () => Spicetify.Player.togglePlay());
+            onClick(playBtn, () => {
+                Spicetify.Player.togglePlay();
+                lastIsPlaying = null;
+                setTimeout(updatePipPlayButton, 120);
+            });
             onClick(nextBtn, () => Spicetify.Player.next());
             onClick(shuffleBtn, () => {
                 Spicetify.Player.toggleShuffle();
@@ -3333,6 +3333,7 @@
 
         // Handle window close
         win.addEventListener('pagehide', () => {
+            if (sessionId !== pipSessionId) return;
             pipWindow = null;
             pipUi = null;
         });
@@ -3342,11 +3343,8 @@
             const track = Spicetify.Player.data?.item;
             if (track?.uri) {
                 currentTrackUri = track.uri;
-                lastIsLiked = null;
-                lastProgressSecond = null;
-                lastProgressRatio = null;
-                lastActiveLyricIndex = -1;
-                await loadLyrics(track.uri);
+                resetTrackDependentState();
+                await loadLyrics(track.uri, getTrackMetadata(track));
                 updatePipLikeState();
             } else {
                 // Retry after a short delay if track data not ready
@@ -3354,9 +3352,9 @@
             }
         }
         
-        updatePipContent();
         lastProgressSecond = null;
         lastProgressRatio = null;
+        updatePipPlayButton();
         updatePipProgress();
         handleActivity();
         initialLoad();
@@ -3364,6 +3362,17 @@
     }
 
     // ==================== PIP CONTENT UPDATES ====================
+    function resetTrackDependentState() {
+        currentLyrics = null;
+        currentLyricsFilteredLines = [];
+        currentLyricElements = [];
+        lastIsLiked = null;
+        lastProgressSecond = null;
+        lastProgressRatio = null;
+        lastActiveLyricIndex = -1;
+        initialScrollPending = false;
+    }
+
     function updatePipContent() {
         const ui = getPipUi();
         if (!ui) return;
@@ -3395,11 +3404,8 @@
         // Check if track changed
         if (track.uri !== currentTrackUri) {
             currentTrackUri = track.uri;
-            lastIsLiked = null;
-            lastProgressSecond = null;
-            lastProgressRatio = null;
-            lastActiveLyricIndex = -1;
-            loadLyrics(track.uri);
+            resetTrackDependentState();
+            loadLyrics(track.uri, getTrackMetadata(track));
             updatePipLikeState();
         }
     }
@@ -3642,7 +3648,7 @@
         }
     }
 
-    async function loadLyrics(uri) {
+    async function loadLyrics(uri, trackMeta = getTrackMetadata()) {
         const ui = getPipUi();
         if (!ui || !ui.lyricsContainer) return;
 
@@ -3659,7 +3665,7 @@
         }, CONFIG.lyricsLoadTimeoutMs);
 
         // Fetch lyrics
-        const lyrics = await fetchLyrics(uri);
+        const lyrics = await fetchLyrics(uri, trackMeta);
         if (requestId !== lyricsRequestId) return;
         currentLyrics = lyrics;
 
@@ -3763,6 +3769,7 @@
                 return;
             }
             
+            updatePipContent();
             updateCurrentLyric();
             updatePipPlayButton();
             updatePipLikeState();
@@ -3786,8 +3793,7 @@
         return `${base}<br><span class="lyric-translation">${trans}</span>`;
     }
 
-    function getTrackDurationMs() {
-        const item = Spicetify.Player.data?.item;
+    function getTrackDurationMs(item = Spicetify.Player.data?.item) {
         return (
             item?.duration?.milliseconds ??
             item?.duration_ms ??
